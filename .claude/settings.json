@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(D:\\bridge-student\\**)",
+      "Write(D:\\bridge-student\\**)"
+    ]
+  }
+}
