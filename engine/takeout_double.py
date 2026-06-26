@@ -112,6 +112,40 @@ def respond_to_double(hand, opp_suit, opp_level=1):
     return f'{lvl}{sym}', f'{h} נק׳, {d[suit]} קלפי {sym} — רמה נמוכה'
 
 
+def doubler_raises(n_hand, s_bid, opp_suit):
+    """
+    N מחליט האם להעלות אחרי תגובת S לדבל (לא קיו ביט).
+    S הכריז ברמה שמשקפת את הניקוד שלו:
+      רמה נמוכה = 0-8 נק׳  → N פס תמיד
+      קפיצה     = 9-12 נק׳ → N מעלה למשחק אם יש התאמה ו-N >= 14
+    """
+    hn   = hcp(n_hand)
+    dn   = distribution(n_hand)
+    s_suit = suit_of(s_bid)
+    if not s_suit or s_suit == opp_suit:
+        return 'Pass', 'אין צבע ברור'
+
+    s_level = int(s_bid[0]) if s_bid and s_bid[0].isdigit() else 0
+
+    # גובה מינימלי לצבע זה
+    s_rank  = _RANK.get(s_suit, 0)
+    opp_rank = _RANK.get(opp_suit, 0)
+    min_lvl = 1 if s_rank > opp_rank else 2
+    is_jump = s_level > min_lvl
+
+    if not is_jump:
+        return 'Pass', f'S ברמה נמוכה (0-8 נק׳). N פס.'
+
+    # S קפץ (9-12 נק׳) — N מעלה למשחק אם יש התאמה ו-N >= 13
+    fit = dn.get(s_suit, 0) >= 3
+    if fit and hn >= 13:
+        sym = _S[s_suit]
+        lvl = 4 if s_suit in ('H', 'S') else 5
+        return f'{lvl}{sym}', f'N={hn} נק׳, S=9-12, התאמה — מעלה ל-{lvl}{sym}'
+
+    return 'Pass', f'N={hn} נק׳ — לא מספיק להעלות'
+
+
 def doubler_rebid(hand, opp_suit):
     """N מראה סדרה אחרי קיו ביט של S — מיגורים לפני מינורים."""
     d   = distribution(hand)
@@ -186,4 +220,17 @@ def respond_to_cue(hand, n_suit, opp_suit=None, n_hand=None):
             if combined >= 28:
                 return f'5{sym}', f'{combined} נק׳, {n_len} קלפי {sym} — 5 מינור'
 
-    return '3NT', 'אין התאמה — 3NT'
+    # 5 — עוצר בN? (N הכריז NT קודם)
+    if n_suit is None and n_hand and _count_stoppers(n_hand, opp_suit):
+        return '3NT', 'עוצר בN — 3NT'
+
+    # 6 — אין עוצר בשום יד — 5 במינור הטוב יותר
+    for minor in ['C', 'D']:
+        if minor == opp_suit:
+            continue
+        n_len = d.get(minor, 0)
+        if n_len >= 3:
+            sym = _S[minor]
+            return f'5{sym}', f'אין עוצר — {n_len} קלפי {sym}, 5 מינור'
+
+    return '3NT', 'אין ברירה — 3NT'

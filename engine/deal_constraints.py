@@ -1726,7 +1726,7 @@ def deal_negative_double_phase1():
 
     scenario = random.choices(
         ['neg_double', 'major', 'cue', '3NT', '2NT', 'minor', '1NT', 'pass'],
-        weights=[4, 3, 2, 2, 2, 1, 2, 2])[0]
+        weights=[6, 2, 1, 1, 1, 3, 1, 1])[0]
 
     for _ in range(_MAX_TRIES):
         hands = _deal_random()
@@ -1756,6 +1756,8 @@ def deal_negative_double_phase1():
         e_level = 1
 
         ds = distribution(s)
+        if min(ds.values()) < 2:  # חצי מאוזן — אין בודד לS
+            continue
         bid, _ = _sr(s, n_suit, e_suit, e_level)
         s_suit = next((v for k, v in _ND_SYM.items() if k in bid), None)
 
@@ -1776,6 +1778,8 @@ def deal_negative_double_phase1():
                 continue
         elif scenario == 'minor':
             if not s_suit or s_suit not in ('D', 'C'):
+                continue
+            if ds.get(s_suit, 0) < 5 or hcp(s) < 11:
                 continue
         elif scenario == '1NT':
             if bid != '1NT':

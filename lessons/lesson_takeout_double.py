@@ -1,6 +1,6 @@
 from lessons.base import BaseLesson
 from engine.deal_constraints import deal_takeout_double_phase1, deal_takeout_double_phase2
-from engine.takeout_double import can_double, respond_to_double, doubler_rebid, respond_to_cue, suit_of
+from engine.takeout_double import can_double, respond_to_double, doubler_raises, doubler_rebid, respond_to_cue, suit_of
 from engine.scoring import hcp, distribution
 from engine.cards import SUIT_SYMBOLS
 from engine.opening import opening_bid as _opening_bid
@@ -100,27 +100,24 @@ class LessonTakeoutDouble(BaseLesson):
                 self._enter_cue_dialogue(bid)
             else:
                 hn = hcp(self.hands['N'])
-                s_suit = _bid_suit(bid)
-                is_minor = s_suit in ('C', 'D')
-                need = 28 if is_minor else 25
-                if s_suit and s_suit not in (self._w_suit,) and hn + h >= need:
-                    lvl  = 4 if s_suit in ('H', 'S') else 5
-                    game = f'{lvl}{_S[s_suit]}'
-                    minor_note = f' (מינורים ♣♦. צריך {need} נק׳)' if is_minor else ''
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid(game)
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
+                n_raise, n_raise_expl = doubler_raises(self.hands['N'], bid, self._w_suit)
+                if n_raise != 'Pass':
+                    # N מעלה למשחק — W-פס, N-raise, E-פס, S-פס (תלמיד), W-פס
+                    self.app.auction_widget.add_bid('Pass')       # W
+                    self.app.auction_widget.add_bid(n_raise)      # N
+                    self.app.auction_widget.add_bid('Pass')       # E
+                    self.app.auction_widget.add_bid('Pass')       # S ← תלמיד פס
+                    self.app.auction_widget.add_bid('Pass')       # W
                     self._finish(
-                        f'נכון. {bid}\n{self._expl}\nN עם {hn} נק׳. מעלה ל-{game}{minor_note}',
+                        f'נכון. {bid}\n{self._expl}\nN עם {hn} נק׳ — מעלה ל-{n_raise}.',
                         ok=True)
                 else:
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
+                    # N פס — W-פס, N-פס, E-פס
+                    self.app.auction_widget.add_bid('Pass')       # W
+                    self.app.auction_widget.add_bid('Pass')       # N
+                    self.app.auction_widget.add_bid('Pass')       # E
                     self._finish(
-                        f'נכון. {self._w_bid}. X. {bid}\n{self._expl}',
+                        f'נכון. {self._w_bid}. X. {bid}\n{self._expl}\nN עם {hn} נק׳ — פס.',
                         ok=True)
         else:
             if self._tries >= 1 and bid == self._last_wrong_bid:
@@ -246,8 +243,20 @@ class LessonTakeoutDouble(BaseLesson):
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)
             if correct == 'X':
-                ec  = d.get(self._e_suit, 0)
-                msg = f'נכון. X.\n{h} נק׳, {ec} קלפים בצבע יריב. עומד בתנאים.'
+                ec = d.get(self._e_suit, 0)
+                # N עונה לדבל של S
+                n_bid, n_expl = respond_to_double(self.hands['N'], self._e_suit, opp_level=1)
+                hn = hcp(self.hands['N'])
+                # סדר: W-פס, N-תגובה, E-פס, S-פס (תלמיד), W-פס, N-פס
+                self.app.auction_widget.add_bid('Pass')        # W
+                self.app.auction_widget.add_bid(n_bid)         # N
+                self.app.auction_widget.add_bid('Pass')        # E
+                self.app.auction_widget.add_bid('Pass')        # S ← תלמיד פס
+                self.app.auction_widget.add_bid('Pass')        # W
+                self.app.auction_widget.add_bid('Pass')        # N
+                msg = (f'נכון. X.\n'
+                       f'{h} נק׳, {ec} קלפים בצבע יריב. עומד בתנאים.\n'
+                       f'N עם {hn} נק׳ עונה {n_bid}.')
             else:
                 msg = f'נכון. פס.\n{self._no_double_reason(h, d)}'
             self._finish(msg, ok=True)

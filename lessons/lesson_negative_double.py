@@ -82,6 +82,7 @@ class LessonNegativeDouble(BaseLesson):
         self.app.auction_widget.add_bid('Pass')
         self.app.auction_widget.add_bid(self._n_bid)
         self.app.auction_widget.add_bid(self._e_bid)
+        self.app.bidding_box.enable()
         self.app.bidding_box.set_last_bid(self._e_bid)
 
         h   = hcp(self.hands['S'])
@@ -150,7 +151,7 @@ class LessonNegativeDouble(BaseLesson):
                     n_bid, n_expl = opener_after_cue(
                         self.hands['N'], self._n_suit, self._e_suit)
                 else:
-                    n_bid, n_expl = opener_after_natural(self.hands['N'], s_suit)
+                    n_bid, n_expl = opener_after_natural(self.hands['N'], self._n_suit, s_suit)
                 self.app.auction_widget.add_bid('Pass')   # W
                 self.app.auction_widget.add_bid(n_bid)    # N
                 self.app.auction_widget.add_bid('Pass')   # E
@@ -193,6 +194,7 @@ class LessonNegativeDouble(BaseLesson):
     def _start_phase2(self):
         self.app.table.show_hands(self.hands, visible=('N',))
         self.app.auction_widget.reset()
+        self.app.bidding_box.enable()
         self.app.auction_widget.set_dealer('W')
         self.app.auction_widget.add_bid('Pass')
         self.app.auction_widget.add_bid(self._n_bid)

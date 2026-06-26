@@ -321,7 +321,11 @@ class BridgeApp(ctk.CTk):
             return None
 
     def _retry_mistake(self):
-        if self._mistake_lesson:
+        if self._lesson:
+            # שיעור פעיל — אותה חלוקה
+            self._setup_lesson_ui(self._lesson_idx)
+            self._lesson.replay()
+        elif self._mistake_lesson:
             # באותה הפעלה — replay ישיר
             self._lesson_idx = self._mistake_lesson_idx
             self._lesson     = self._mistake_lesson

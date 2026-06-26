@@ -29,7 +29,7 @@ def can_negative_double(s_hand, n_suit, e_suit, e_level=1):
     h = hcp(s_hand)
     d = distribution(s_hand)
 
-    if not (8 <= h <= 12):
+    if not (7 <= h <= 12):
         return False
 
     unbid_majors = [s for s in ['S', 'H'] if s not in (n_suit, e_suit)]
@@ -69,8 +69,11 @@ def s_response(s_hand, n_suit, e_suit, e_level=1):
                 sym = _S[major]
                 return f'{lvl}{sym}', f'{h} נק׳, {d[major]} קלפי {sym}'
 
-    # 2. 13+ → 3NT עם עוצר, קיו ביט ללא עוצר
+    # 2. 13+ → X עם 4 מיגור פנוי, 3NT עם עוצר, קיו ביט ללא עוצר ובלי מיגור
     if h >= 13:
+        for major in unbid_majors:
+            if d[major] >= 4:
+                return 'X', f'{h} נק׳, 4 קלפי {_S[major]} — נגטיב דאבל'
         if has_stopper(s_hand, e_suit):
             return '3NT', f'{h} נק׳, עוצר ב{_S[e_suit]} — 3NT'
         sym = _S[e_suit]
@@ -80,17 +83,29 @@ def s_response(s_hand, n_suit, e_suit, e_level=1):
     if h >= 11 and has_stopper(s_hand, e_suit):
         return '2NT', f'{h} נק׳, עוצר ב{_S[e_suit]} — 2NT'
 
-    # 4. 5+ מינור, 11+ נק'
+    # 3b. 4+ תמיכה לצבע N, 6+ נק'
+    if d[n_suit] >= 4 and h >= 6:
+        sym = _S[n_suit]
+        return f'2{sym}', f'{h} נק׳, {d[n_suit]} קלפי {sym} — תמיכה'
+
+    # 4. מינור ארוך (6+) עם 11+ נק' — עדיפות על X
+    for minor in unbid_minors:
+        if d[minor] >= 6 and h >= 11:
+            sym = _S[minor]
+            lvl = _min_lvl(minor, e_suit, e_level)
+            return f'{lvl}{sym}', f'{h} נק׳, {d[minor]} קלפי {sym}'
+
+    # 5. X נגטיב: 7+ נק', 4+ מיגור פנוי
+    for major in unbid_majors:
+        if d[major] >= 4 and h >= 7:
+            return 'X', f'{h} נק׳, 4 קלפי {_S[major]} — נגטיב דאבל'
+
+    # 6. מינור 5 קלפים, 11+ נק'
     for minor in unbid_minors:
         if d[minor] >= 5 and h >= 11:
             sym = _S[minor]
             lvl = _min_lvl(minor, e_suit, e_level)
             return f'{lvl}{sym}', f'{h} נק׳, {d[minor]} קלפי {sym}'
-
-    # 5. X נגטיב: 8+ נק', 4+ מיגור פנוי
-    for major in unbid_majors:
-        if d[major] >= 4 and h >= 8:
-            return 'X', f'{h} נק׳, 4 קלפי {_S[major]} — נגטיב דאבל'
 
     # 6. 1NT: 7-10 נק', עוצר
     if h >= 7 and has_stopper(s_hand, e_suit):
@@ -117,7 +132,7 @@ def opener_after_cue(n_hand, n_suit, e_suit):
     return f'3{sym}', f'אין עוצר ב{_S[e_suit]} — חוזר ל{sym}'
 
 
-def opener_after_natural(n_hand, s_suit):
+def opener_after_natural(n_hand, n_suit, s_suit):
     """
     ריבאד N אחרי הכרזה ישירה של S במיגור (5+ קלפים, 7-12 נק').
     מחזיר (bid, explanation).
@@ -134,7 +149,17 @@ def opener_after_natural(n_hand, s_suit):
             return f'3{sym}', f'תמיכה ב{sym} + {h} נק׳ — הזמנה'
         return 'Pass', f'תמיכה ב{sym} אבל {h} נק׳ — לא מספיק להזמנה'
 
-    return 'Pass', f'אין 3+ תמיכה ב{sym} — פס'
+    # אין תמיכה — N מכריז סדרה משלו
+    # סדרה שנייה של N (4+ קלפים, לא צבע E ולא צבע S)
+    for suit in ['C', 'D', 'H', 'S']:
+        if suit not in (n_suit, s_suit) and d[suit] >= 4:
+            return f'2{_S[suit]}', f'{d[suit]} קלפי {_S[suit]} — סדרה שנייה'
+    # ריבאד בסדרת N עצמה (5+ קלפים)
+    if d[n_suit] >= 5:
+        lvl = 3 if h >= 15 else 2
+        return f'{lvl}{_S[n_suit]}', f'{d[n_suit]} קלפי {_S[n_suit]} — ריבאד'
+
+    return 'Pass', f'אין תמיכה ואין סדרה — פס'
 
 
 def opener_rebid(n_hand, n_suit, e_suit, e_level=1):
