@@ -80,6 +80,11 @@ def s_response(s_hand, n_suit, e_suit, e_level=1):
     if h >= 11 and has_stopper(s_hand, e_suit):
         return '2NT', f'{h} נק׳, עוצר ב{_S[e_suit]} — 2NT'
 
+    # 3b. 4+ תמיכה לצבע N, 6+ נק'
+    if d[n_suit] >= 4 and h >= 6:
+        sym = _S[n_suit]
+        return f'2{sym}', f'{h} נק׳, {d[n_suit]} קלפי {sym} — תמיכה'
+
     # 4. 5+ מינור, 11+ נק'
     for minor in unbid_minors:
         if d[minor] >= 5 and h >= 11:
