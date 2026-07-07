@@ -15,13 +15,13 @@ _S = SUIT_SYMBOLS
 _FIXED_S = [
     # יד 1: 5 יהלומים. סדרה ארוכה ביותר → 1♦
     ['AS','KS','QS','5S', '9H','8H', 'TD','8D','4D','3D','2D', 'AC','4C'],
-    # יד 2: 18 נק' מאוזן, 4 ספיידים, 3-3 במינורים → 1♣ (מאולץ)
+    # יד 2: 18 נקודות מאוזן, 4 ספיידים, 3-3 במינורים → 1♣ (מאולץ)
     ['AS','KS','TS','8S', 'AH','KH','TH', 'TD','4D','3D', 'AC','4C','2C'],
     # יד 3: 4♥ ו-4♦. 2 רביעיות, הנמוכה = ♦ → 1♦
     ['AS','KS', '9H','8H','7H','6H', '8D','4D','3D','2D', 'AC','KC','2C'],
     # יד 4: 4♥, אין 5 מיגור, 3-3 במינורים → 1♣ (מאולץ)
     ['AS','KS','QS', '9H','8H','7H','6H', 'TD','4D','3D', 'AC','4C','2C'],
-    # יד 5: 17 נק' מאוזן → 1NT (לא מינור!)
+    # יד 5: 17 נקודות מאוזן → 1NT (לא מינור!)
     ['AS','KS','QS','JS', '9H','8H','7H','6H', 'KD','4D','3D', 'AC','4C'],
 ]
 
@@ -240,12 +240,12 @@ class LessonStudentOpensMinor(BaseLesson):
     def _set_rebid_instruction(self, north_bid):
         rows = self._rebid_rows(north_bid)
         if rows:
-            self.app.set_instruction_table('מה תכריז?', rows)
+            self.app.set_instruction_table('מה תכריז', rows)
         else:
             h_s = hcp(self.hands['S'])
             self.app.set_instruction(
                 f'מחשב ענה {north_bid}.\n{self._north_why}.\n'
-                f'יש לך {h_s} נקודות.\nמה תכריז?')
+                f'יש לך {h_s} נקודות.\nמה תכריז')
 
     def _rebid_rows(self, north_bid):
         sym = _S.get(getattr(self, '_minor', 'C'), '♣')

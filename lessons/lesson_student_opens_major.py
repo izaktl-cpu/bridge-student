@@ -90,7 +90,7 @@ class LessonStudentOpensMajor(BaseLesson):
                 self._rebid_pts = (h_s, dp, tot)
                 dp_str = f'\nיש {h_s} נקודות גבוהות\nיש {dp} נקודות חוסר\nסה״כ {tot}' if dp > 0 else f'\nיש {h_s} נקודות גבוהות'
                 self.app.bidding_box.set_last_bid(north_bid)
-                self.app.set_instruction(f'{dp_str.lstrip(chr(10))}\n\nמה תכריז?')
+                self.app.set_instruction(f'{dp_str.lstrip(chr(10))}\n\nמה תכריז')
         else:
             self._tries += 1
             if self._tries < 2:
@@ -102,7 +102,7 @@ class LessonStudentOpensMajor(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')                # W
                 self.app.auction_widget.add_bid('Pass')                # N
                 self.app.auction_widget.add_bid('Pass')                # E
-                self._finish(f'טעית בפעם השנייה.\n{self._explain_open_wrong(correct)}', ok=False)
+                self._finish(f'{self._explain_open_wrong(correct)}', ok=False)
 
     # ── שלב 2: תלמיד עושה חזרה ─────────────────────────────────────────────
 
@@ -128,7 +128,7 @@ class LessonStudentOpensMajor(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')                # W
                 self.app.auction_widget.add_bid('Pass')                # N
                 self.app.auction_widget.add_bid('Pass')                # E
-                self._finish(f'טעית בפעם השנייה.\n{self._explain_rebid_wrong(correct)}', ok=False)
+                self._finish(f'{self._explain_rebid_wrong(correct)}', ok=False)
 
     def _explain_rebid_wrong(self, correct):
         h_s, dp, tot = self._rebid_pts

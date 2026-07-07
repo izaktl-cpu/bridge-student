@@ -38,8 +38,6 @@ class LessonRobotOpensWeak2(BaseLesson):
         self._stage     = 'respond'
 
         sym = _S[self._major]
-        pos = self.hands.get('position', 1)
-        pos_str = f'יד {pos}'
         self.app.table.show_hands(self.hands, visible=('S',))
         self.app.auction_widget.reset()
         self.app.auction_widget.set_dealer('N')
@@ -49,7 +47,7 @@ class LessonRobotOpensWeak2(BaseLesson):
         self.app.bidding_box.set_last_bid(f'2{sym}')
         other_sym = _S['H' if self._major == 'S' else 'S']
         self.app.set_instruction_table(
-            f'מחשב פתח 2{sym} ({pos_str}). מה תכריז?',
+            'מה תכריז',
             [
                 ('Pass',         '0-2 לקיחות'),
                 (f'3{sym}',      f'תמיכה ב-{sym}, 3 לקיחות'),

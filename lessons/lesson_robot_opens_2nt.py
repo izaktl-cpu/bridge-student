@@ -56,7 +56,7 @@ class LessonRobotOpens2NT(BaseLesson):
         self.app.auction_widget.add_bid('Pass')
 
         self.app.set_instruction_table(
-            'מחשב פתח 2NT (20-22 נקודות). מה תכריז?',
+            'מחשב פתח 2NT (20-22 נקודות). מה תכריז',
             [
                 ('3♣',  'סטיימן. 5+ נקודות, 2 רביעיות (אחת מיגור)'),
                 ('3♦',  'טרנספר ל-♥. 5+ קלפי ♥'),
@@ -90,7 +90,7 @@ class LessonRobotOpens2NT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
@@ -149,14 +149,14 @@ class LessonRobotOpens2NT(BaseLesson):
         fit_suit = self._fit_suit()
         if fit:
             self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז?',
+                f'{reply_text}\nמה תכריז',
                 [
                     (f'4{fit_suit}', f'יש התאמה ב-{fit_suit}. משחק מלא'),
                 ]
             )
         else:
             self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז?',
+                f'{reply_text}\nמה תכריז',
                 [
                     ('3NT', 'אין התאמה. יש 5+ נקודות, לך ל-3NT'),
                 ]
@@ -199,7 +199,7 @@ class LessonRobotOpens2NT(BaseLesson):
                 self.app.bidding_box.set_last_bid(self._stayman_reply)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_stayman_cont(self):
         if self._has_fit():
@@ -240,7 +240,7 @@ class LessonRobotOpens2NT(BaseLesson):
         d = distribution(self.hands['S'])
         suit_len = d['H'] if target_sym == '♥' else d['S']
         self.app.set_instruction_table(
-            f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז?',
+            f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז',
             [
                 ('Pass',            'עד 4 נקודות. עצור ב-3'),
                 ('3NT',             f'5+ נקודות, 5 קלפי {target_sym} בדיוק. הפותח יבחר'),
@@ -274,7 +274,7 @@ class LessonRobotOpens2NT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_transfer_cont(self):
         h = hcp(self.hands['S'])

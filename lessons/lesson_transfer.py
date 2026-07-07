@@ -49,7 +49,7 @@ class LessonTransfer(BaseLesson):
         self.app.auction_widget.add_bid('1NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction('מחשב פתח 1NT. מה תכריז?')
+        self.app.set_instruction('מחשב פתח 1NT. מה תכריז')
         self.app.bidding_box.set_last_bid('1NT')
 
     def on_student_bid(self, bid):
@@ -73,7 +73,7 @@ class LessonTransfer(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
@@ -131,7 +131,7 @@ class LessonTransfer(BaseLesson):
         key = 'H' if target_sym == '♥' else 'S'
         suit_len = distribution(self.hands['S'])[key]
         self.app.set_instruction_table(
-            f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז?',
+            f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז',
             [
                 ('Pass',              '0-7 נקודות'),
                 ('2NT',               f'8-9 נקודות, 5 קלפי {target_sym} בדיוק'),
@@ -183,7 +183,7 @@ class LessonTransfer(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     # ── תגובות N ──────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ from lessons.base import BaseLesson
 from engine.deal_constraints import deal_slam_major
 from engine.scoring import hcp, key_cards, rkcb_response, distribution
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_slam_correct, msg_slam_stop, msg_slam_wrong, msg_slam_possible
+from utils.messages import msg_slam_correct, msg_slam_stop, msg_slam_wrong
 
 _S = SUIT_SYMBOLS
 
@@ -18,8 +18,8 @@ def _bid_rank(bid):
 _BW_EXPLAIN = {
     '5♣': '0 או 3 אסים',
     '5♦': '1 או 4 אסים',
-    '5♥': '2 אסים, ללא Q שליט',
-    '5♠': '2 אסים + Q שליט',
+    '5♥': '2 אסים ללא Q שליט',
+    '5♠': '2 אסים עם Q שליט',
 }
 
 
@@ -82,14 +82,14 @@ class LessonSlamSuit(BaseLesson):
     def _opening_options(self):
         t = self._trump_sym
         op = self._opening
-        title = 'מה תכריז?'
+        title = 'מה תכריז'
         if op == '1♥':
             # trump=♠ — S מכריז 1♠ ישירות
-            return title, [(f'1{t}', f'5+ {t} — מראה שליט')]
+            return title, [(f'1{t}', f'5+ {t}, מראה שליט')]
         other = '1♥/1♠' if op == '1♦' else '1♦/1♥/1♠'
         return title, [
-            (f'1{t}', f'5+ {t} — מראה שליט ישירות'),
-            (other, '4+ בסדרה — ללא 5-קלף מיגור'),
+            (f'1{t}', f'5+ {t}, מראה שליט ישירות'),
+            (other, '4+ בסדרה, ללא 5-קלף מיגור'),
         ]
 
     # ── ניתוב ─────────────────────────────────────────────────────────────
@@ -141,8 +141,8 @@ class LessonSlamSuit(BaseLesson):
                 self.app.auction_widget.add_bid(n_trump)  # 1NT
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'N אינו יכול להכריז {t} ללא רוורס (18+).\n'
-                    f'N הכריז 1NT. קח יד חדשה.',
+                    f'N אינו יכול להכריז {t} ללא רוורס\n'
+                    f'N הכריז 1NT\nקח יד חדשה',
                     ok=True)
                 return
             self._zero_path = 'n_jumped' if jumped else 'n_min'
@@ -162,19 +162,19 @@ class LessonSlamSuit(BaseLesson):
                 hs_adj = self._hs + dp
                 if hs_adj >= 16:
                     raise_options = [
-                        (f'2{t}', '6-9 נק׳'),
-                        (f'3{t}', '10-12 נק׳'),
-                        (f'4{t}', '13-15 נק׳'),
-                        ('4NT', '16+ נק׳ — שאל מפתחות'),
+                        (f'2{t}', '6-9 נקודות'),
+                        (f'3{t}', '10-12 נקודות'),
+                        (f'4{t}', '13-15 נקודות'),
+                        ('4NT', '16+ נקודות, שאל אסים'),
                     ]
                 else:
                     raise_options = [
-                        (f'2{t}', '6-9 נק׳'),
-                        (f'3{t}', '10-12 נק׳'),
-                        (f'4{t}', '13+ נק׳'),
+                        (f'2{t}', '6-9 נקודות'),
+                        (f'3{t}', '10-12 נקודות'),
+                        (f'4{t}', '13+ נקודות'),
                     ]
                 self.app.set_instruction_table(
-                    f'N הכריז {n_trump} (12-17 נק׳). הראה רמת תמיכה ב-{t}.',
+                    f'N הכריז {n_trump}\n12-17 נקודות\nהראה רמת תמיכה ב-{t}',
                     raise_options
                 )
                 self.app.bidding_box.set_last_bid(n_trump, no_pass=True)
@@ -288,10 +288,10 @@ class LessonSlamSuit(BaseLesson):
             self._stage = 'rkcb_s'
             self._tries = 0
             self.app.set_instruction_table(
-                f'N שאל 4NT ({combined} נק. משותפות). כמה מפתחות יש לך?',
+                f'N שאל 4NT\n{combined} נקודות משותפות\nכמה אסים יש לך',
                 [
-                    ('5♣', '0 או 3 מפתחות'),
-                    ('5♦', '1 או 4 מפתחות'),
+                    ('5♣', '0 או 3 אסים'),
+                    ('5♦', '1 או 4 אסים'),
                     ('5♥', '2 ללא Q שליט'),
                     ('5♠', '2 + Q שליט'),
                 ]
@@ -325,7 +325,7 @@ class LessonSlamSuit(BaseLesson):
     def _handle_rkcb_s(self, bid):
         valid_rkcb = {'5♣', '5♦', '5♥', '5♠'}
         if bid not in valid_rkcb:
-            self.app.set_feedback('הכרז מפתחות\n5♣/5♦/5♥/5♠', ok=False)
+            self.app.set_feedback('הכרז אסים\n5♣/5♦/5♥/5♠', ok=False)
             return
 
         s_rkcb, _, _ = rkcb_response(self.hands['S'], self._trump)
@@ -346,7 +346,7 @@ class LessonSlamSuit(BaseLesson):
         dp = self._dist_points()
         combined = self._hn + self._hs + dp
         prefix = getattr(self, '_raise_prefix', '')
-        wrong_note = '' if is_correct else f'יש לך {self._s_kc} מפתחות\nההכרזה הנכונה\n{correct}\n'
+        wrong_note = '' if is_correct else f'יש לך {self._s_kc} אסים\nההכרזה הנכונה\n{correct}\n'
 
         if total_kc >= 4 and combined >= 33:
             contract6 = f'6{t}'
@@ -383,25 +383,25 @@ class LessonSlamSuit(BaseLesson):
 
         if lvl >= 4:
             self._game_bid = 'Pass'
-            game_desc = 'N הגיע למשחק. עצור'
-            n_strength = '18+ נק׳'
+            game_desc = 'N הגיע למשחק, עצור'
+            n_strength = '18+ נקודות'
         elif self._zero_path == 'n_jumped':
-            game_desc = 'פחות מ-33 נק׳ משותפות. משחק'
-            n_strength = '18+ נק׳'
+            game_desc = 'פחות מ-33 נקודות משותפות, משחק'
+            n_strength = '18+ נקודות'
         elif lvl == 3:
-            game_desc = 'פחות מ-33 נק׳ משותפות. משחק'
-            n_strength = '15-17 נק׳'
+            game_desc = 'פחות מ-33 נקודות משותפות, משחק'
+            n_strength = '15-17 נקודות'
         else:
             # N מינימום 12-14: S מחליט Pass/game לפי כוחו
-            n_strength = '12-14 נק׳'
+            n_strength = '12-14 נקודות'
             dp = self._dist_points()
             hs_adj = self._hs + dp
             self._stage = 'first'
             self.app.set_instruction_table(
-                f'N הכריז {n_rebid} ({n_strength}). מה תכריז?',
+                f'N הכריז {n_rebid}\n{n_strength}\nמה תכריז',
                 [
-                    (f'4{t}', '14+ נק׳. יש משחק'),
-                    ('Pass', 'פחות מ-14 נק׳. אין משחק'),
+                    (f'4{t}', '13+ נקודות, יש משחק'),
+                    ('Pass', 'פחות מ-13 נקודות, אין משחק'),
                 ]
             )
             self.app.bidding_box.set_last_bid(n_rebid, no_pass=False)
@@ -409,10 +409,10 @@ class LessonSlamSuit(BaseLesson):
 
         self._stage = 'first'
         self.app.set_instruction_table(
-            f'N הכריז {n_rebid} ({n_strength}). מה תכריז?',
+            f'N הכריז {n_rebid}\n{n_strength}\nמה תכריז',
             [
                 (self._game_bid, game_desc),
-                ('4NT', '33+ נק׳ משותפות. שאל אסים'),
+                ('4NT', '33+ נקודות משותפות, שאל אסים'),
             ]
         )
         self.app.bidding_box.set_last_bid(n_rebid, no_pass=lvl < 4)
@@ -476,8 +476,8 @@ class LessonSlamSuit(BaseLesson):
         elif lvl == 3:
             n_min = self._hn
         else:
-            # N מינימום 12-14: S מחליט game/pass
-            return f'4{t}' if hs_adj >= 14 else 'Pass'
+            # N מינימום 12-14: S מחליט game/pass (התאמה 9 קלפים → סף 13)
+            return f'4{t}' if hs_adj >= 13 else 'Pass'
         if hs_adj + n_min >= 33:
             return '4NT'
         return self._game_bid
@@ -530,15 +530,11 @@ class LessonSlamSuit(BaseLesson):
         game5 = f'5{t}'
         self._stop_bid = game5 if _bid_rank(game5) > _bid_rank(response) else 'Pass'
 
-        dp = self._dist_points()
-        combined = self._hn + self._hs + dp
-        dist_note = f' (+{dp} חלוקה)' if dp else ''
         self.app.set_instruction_table(
-            f'מחשב ענה {response} = {explain}.\n'
-            f'יש לך {self._s_kc} אסים. סה״כ {total} מ-5. נק משותפות: {combined}{dist_note}.',
+            f'מחשב ענה {response}\n{explain}',
             [
-                (f'6{t}',         '4+ מפתחות + 33 נק. סלם'),
-                (self._stop_bid,  'פחות מ-4 מפתחות / פחות מ-33. עוצרים'),
+                (f'6{t}',         '5 אסים ו-33 נקודות'),
+                (self._stop_bid,  'פחות מ-5 או פחות מ-33'),
             ]
         )
         self.app.bidding_box.set_last_bid(response)

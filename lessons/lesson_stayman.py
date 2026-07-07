@@ -44,7 +44,7 @@ class LessonStayman(BaseLesson):
         self.app.auction_widget.add_bid('1NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction('מחשב פתח 1NT. מה תכריז?')
+        self.app.set_instruction('מחשב פתח 1NT. מה תכריז')
         self.app.bidding_box.set_last_bid('1NT')
 
     def on_student_bid(self, bid):
@@ -68,7 +68,7 @@ class LessonStayman(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
@@ -132,7 +132,7 @@ class LessonStayman(BaseLesson):
         fit_suit = self._fit_suit()
         if fit:
             self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז?',
+                f'{reply_text}\nמה תכריז',
                 [
                     (f'3{fit_suit}', '8-9 סה״כ'),
                     (f'4{fit_suit}', '10+ סה״כ'),
@@ -140,7 +140,7 @@ class LessonStayman(BaseLesson):
             )
         else:
             self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז?',
+                f'{reply_text}\nמה תכריז',
                 [
                     ('2NT', '8-9'),
                     ('3NT', '10+'),
@@ -195,7 +195,7 @@ class LessonStayman(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct, extra_pts=extra)}', ok=False)
+                self._finish(f'{self._wrong_message(correct, extra_pts=extra)}', ok=False)
 
     def _close_stayman_cont(self, bid, message, ok):
         self.app.auction_widget.add_bid(bid, highlight=True)  # S

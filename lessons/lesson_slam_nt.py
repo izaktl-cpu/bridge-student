@@ -77,7 +77,7 @@ class LessonSlamNT(BaseLesson):
         self.app.auction_widget.add_bid('Pass')
 
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [
                 ('Pass', '0-7 נקודות'),
                 ('2NT', '8-9. הזמנה ל-3NT'),
@@ -100,7 +100,7 @@ class LessonSlamNT(BaseLesson):
         self.app.auction_widget.add_bid('Pass')
 
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [
                 ('3NT', '5-10 נקודות'),
                 ('4NT', '11-12. הזמנה לסלם'),
@@ -133,12 +133,12 @@ class LessonSlamNT(BaseLesson):
         if opening in ('C', 'D'):
             rows = [
                 ('1♥', '4+ קלפי ♥, אין 5 ♠'),
-                ('1♠', '4+ קלפי ♠\nעם 5♠+4♥ — ♠ קודם'),
+                ('1♠', '4+ קלפי ♠\nעם 5♠ ו-4♥, ♠ קודם'),
             ]
         else:  # opening == 'H'
             rows = [('1♠', '4+ קלפי ♠')]
         self.app.set_instruction_table(
-            'מה תכריז?', rows)
+            'מה תכריז', rows)
         self.app.bidding_box.set_last_bid(open_bid)
 
     def _setup_mode_d(self, deal=True):
@@ -160,73 +160,124 @@ class LessonSlamNT(BaseLesson):
 
         resp_sym = _S[response]
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [(resp_bid, f'4+ קלפי {resp_sym}, 18+ נק\'')]
         )
         self.app.bidding_box.set_last_bid(open_bid)
 
     def _handle_respond_d(self, bid):
-        _, _, open_bid, resp_bid = self._mode_d_seq
+        opening, _, open_bid, resp_bid = self._mode_d_seq
         correct = resp_bid
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
             self.app.auction_widget.add_bid('Pass')               # W
-            self.app.auction_widget.add_bid('1NT')                # N
-            self.app.auction_widget.add_bid('Pass')               # E
-            self._stage = 'decide_d'
-            self._tries = 0
-            hs = hcp(self.hands['S'])
-            has_five = any(suit_len(self.hands['S'], su) >= 5 for su in ['S', 'H', 'D', 'C'])
-            if has_five and hs == 20:
-                rows = [('6NT', '20 נק\' + סדרה. סלם ישיר')]
+            minor_fit = suit_len(self.hands['S'], opening) >= 5
+            if minor_fit:
+                # התאמת מינור: N חוזר 2m, S ישאל RKCB בשליט המינור
+                self._trump = opening
+                m_sym = _S[opening]
+                n_rebid = f'2{m_sym}'
+                self.app.auction_widget.add_bid(n_rebid)          # N
+                self.app.auction_widget.add_bid('Pass')           # E
+                self._stage = 'rkcb_ask_d'
+                self._tries = 0
+                self.app.set_instruction_table(
+                    'מה תכריז',
+                    [('4NT', f'שאלת אסים בשליט {m_sym}')])
+                self.app.bidding_box.set_last_bid(n_rebid)
             else:
-                rows = [('4NT', 'שואל מינימום/מקסימום\nל-6NT: 33 נק\' משותפות')]
-            self.app.set_instruction_table('מה תכריז?', rows)
-            self.app.bidding_box.set_last_bid('1NT')
+                # מאוזן: N חוזר 1NT, S מחליט כמותית
+                self.app.auction_widget.add_bid('1NT')            # N
+                self.app.auction_widget.add_bid('Pass')           # E
+                self._stage = 'decide_d'
+                self._tries = 0
+                self.app.set_instruction_table(
+                    'מה תכריז',
+                    [('4NT', 'שואל מינימום או מקסימום\n33 נקודות משותפות ל-6NT')])
+                self.app.bidding_box.set_last_bid('1NT')
         else:
             self._tries += 1
             if self._tries < 2:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{correct}', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
+
+    def _handle_rkcb_ask_d(self, bid):
+        if bid == '4NT':
+            self.app.auction_widget.add_bid(bid, highlight=True)  # S
+            n_resp, n_kc, _ = rkcb_response(self.hands['N'], self._trump)
+            s_kc = key_cards(self.hands['S'], self._trump)
+            self._d_total_kc = n_kc + s_kc
+            self._d_combined = hcp(self.hands['N']) + hcp(self.hands['S'])
+            self.app.auction_widget.add_bid('Pass')               # W
+            self.app.auction_widget.add_bid(n_resp)               # N
+            self.app.auction_widget.add_bid('Pass')               # E
+            self._stage = 'rkcb_decide_d'
+            self._tries = 0
+            m_sym = _S[self._trump]
+            explain = _RKCB_EXPLAIN.get(n_resp, '')
+            self.app.set_instruction_table(
+                f'N ענה {n_resp}\n{explain}\nמה תכריז',
+                [(f'6{m_sym}', '5 אסים ו-33 נקודות'),
+                 (f'5{m_sym}', 'פחות מ-5 או פחות מ-33')])
+            self.app.bidding_box.set_last_bid(n_resp)
+        else:
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
+                self.app.auction_widget.add_bid(bid, highlight=True)
+                self._finish('ההכרזה הנכונה\n4NT', ok=False)
+
+    def _handle_rkcb_decide_d(self, bid):
+        m_sym = _S[self._trump]
+        kc = self._d_total_kc
+        combined = self._d_combined
+        correct = f'6{m_sym}' if (kc >= 5 and combined >= 33) else f'5{m_sym}'
+        if bid == correct:
+            self.app.auction_widget.add_bid(bid, highlight=True)
+            self.app.auction_widget.add_bid('Pass')  # W
+            self.app.auction_widget.add_bid('Pass')  # N
+            self.app.auction_widget.add_bid('Pass')  # E
+            if correct.startswith('6'):
+                self._finish(f'סלם\n{kc} אסים ו-{combined} נקודות\nחוזה\n{correct}', ok=True)
+            else:
+                self._finish(f'נכון\n{kc} אסים ו-{combined} נקודות\nעוצרים ב-{correct}', ok=True)
+        else:
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
+                self.app.auction_widget.add_bid(bid, highlight=True)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _handle_decide_d(self, bid):
         hs = hcp(self.hands['S'])
-        has_five = any(suit_len(self.hands['S'], su) >= 5 for su in ['S', 'H', 'D', 'C'])
-        correct = '6NT' if (has_five and hs == 20) else '4NT'
-        total = hs + self._hn
+        correct = '4NT'   # כמותי — N מחליט לפי 33 נקודות משותפות
 
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)
-            if correct == '6NT':
-                self.app.auction_widget.add_bid('Pass')  # W
+            self.app.auction_widget.add_bid('Pass')  # W
+            if self._hn + hs >= 33:
+                self.app.auction_widget.add_bid('6NT')   # N
+                self.app.auction_widget.add_bid('Pass')  # E
+                self._start_closing(
+                    f'נכון\n{hs} נקודות\nחוזה\n6NT',
+                    ok=True)
+            else:
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
                 self._finish(
-                    f'סלם ישיר\n{hs} נקודות + סדרה\nחוזה\n6NT',
+                    f'נכון\n{hs} נקודות\nחוזה\n4NT',
                     ok=True)
-            else:  # 4NT
-                self.app.auction_widget.add_bid('Pass')  # W
-                if self._hn + hs >= 33:
-                    self.app.auction_widget.add_bid('6NT')   # N
-                    self.app.auction_widget.add_bid('Pass')  # E
-                    self._start_closing(
-                        f'נכון\n{hs} נקודות\nחוזה\n6NT',
-                        ok=True)
-                else:
-                    self.app.auction_widget.add_bid('Pass')  # N
-                    self.app.auction_widget.add_bid('Pass')  # E
-                    self._finish(
-                        f'נכון\n{hs} נקודות\nחוזה\n4NT',
-                        ok=True)
         else:
             self._tries += 1
             if self._tries < 2:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct, extra_line=f"יש {hs} נקודות")}', ok=False)
+                self._finish(self._wrong_message(correct, extra_line=f"יש {hs} נקודות"), ok=False)
 
     def _handle_respond_c(self, bid):
         _, _, open_bid, resp_bid = self._mode_c_seq
@@ -241,7 +292,7 @@ class LessonSlamNT(BaseLesson):
             self._stage = 'decide'
             self._tries = 0
             self.app.set_instruction_table(
-                'מה תכריז?',
+                'מה תכריז',
                 [
                     ('3NT', 'עד 16 נקודות'),
                     ('4NT', '17-19. הזמנה לסלם'),
@@ -255,7 +306,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{resp_bid}', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{resp_bid}', ok=False)
 
     # ── לוגיקת תגובה ──────────────────────────────────────────────────────
 
@@ -265,6 +316,10 @@ class LessonSlamNT(BaseLesson):
             self._handle_respond_c(bid)
         elif self._stage == 'respond_d':
             self._handle_respond_d(bid)
+        elif self._stage == 'rkcb_ask_d':
+            self._handle_rkcb_ask_d(bid)
+        elif self._stage == 'rkcb_decide_d':
+            self._handle_rkcb_decide_d(bid)
         elif self._stage == 'decide_d':
             self._handle_decide_d(bid)
         elif self._stage == 'decide':
@@ -292,7 +347,7 @@ class LessonSlamNT(BaseLesson):
             else:
                 hs = hcp(self.hands['S'])
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct, extra_line=f"יש {hs} נקודות")}', ok=False)
+                self._finish(self._wrong_message(correct, extra_line=f"יש {hs} נקודות"), ok=False)
 
     def _calc_correct(self):
         hs = hcp(self.hands['S'])
@@ -391,7 +446,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')                # W
                 self.app.auction_widget.add_bid('Pass')                # N
                 self.app.auction_widget.add_bid('Pass')                # E
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct, extra_line=f"יש {hs} נקודות")}', ok=False)
+                self._finish(self._wrong_message(correct, extra_line=f"יש {hs} נקודות"), ok=False)
 
     def _handle_4nt(self, hs, total):
         self.app.auction_widget.add_bid('Pass')  # W
@@ -402,7 +457,7 @@ class LessonSlamNT(BaseLesson):
                 self._stage = 'decide_grand'
                 self._tries = 0
                 self.app.set_instruction_table(
-                    'מה תכריז?',
+                    'מה תכריז',
                     [
                         ('Pass', 'מסתפקים בסלם קטן'),
                         ('5NT', f'{hs} נקודות. שואל מינימום/מקסימום לסלם גדול'),
@@ -452,7 +507,7 @@ class LessonSlamNT(BaseLesson):
         self._tries = 0
 
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [(f'1{_S["S"]}', f'5+ קלפי {_S["S"]}, 4+ {_S["H"]}, יד חזקה')]
         )
         self.app.bidding_box.set_last_bid(open_bid)
@@ -467,7 +522,7 @@ class LessonSlamNT(BaseLesson):
             self._stage = 'e_bid2'
             self._tries = 0
             self.app.set_instruction_table(
-                f'מה תכריז?',
+                f'מה תכריז',
                 [(f'3{_S["H"]}', f'4 קלפי {_S["H"]}, יד חזקה')]
             )
             self.app.bidding_box.set_last_bid('1NT')
@@ -477,7 +532,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{correct}', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _handle_e_bid2(self, bid):
         correct = f'3{_S["H"]}'
@@ -490,8 +545,8 @@ class LessonSlamNT(BaseLesson):
             self._stage = 'e_bid3'
             self._tries = 0
             self.app.set_instruction_table(
-                'מה תכריז?',
-                [('4NT', f'RKCB — שאלת אסים בשליט {_S["S"]}')]
+                'מה תכריז',
+                [('4NT', f'שאלת אסים בשליט {_S["S"]}')]
             )
             self.app.bidding_box.set_last_bid(n_bid)
         else:
@@ -500,7 +555,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{correct}', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _handle_e_bid3(self, bid):
         correct = '4NT'
@@ -522,7 +577,7 @@ class LessonSlamNT(BaseLesson):
                 (f'6{_S["S"]}', f'5 אסים, או 4+33 נק\''),
                 (f'5{_S["S"]}', '4 אסים ופחות מ-33, או פחות מ-4'),
             ]
-            self.app.set_instruction_table('מה תכריז?', rows)
+            self.app.set_instruction_table('מה תכריז', rows)
             self.app.bidding_box.set_last_bid(n_rkcb)
 
         if bid == correct:
@@ -534,7 +589,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{correct}', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _handle_e_bid4(self, bid):
         total_kc = self._e_total_kc
@@ -561,7 +616,7 @@ class LessonSlamNT(BaseLesson):
                 else:
                     reason = f'4 אסים, רק {total_hcp} נק\''
                 msg = (f'נכון\n{reason}\nעוצרים ב-{correct}' if ok
-                       else f'טעית בפעם השנייה.\n{reason}\nההכרזה הנכונה\n{correct}')
+                       else f'{reason}\nההכרזה הנכונה\n{correct}')
             self._finish(msg, ok=ok)
 
         if bid == correct:

@@ -58,17 +58,17 @@ def cards_of(n, sym):
 
 def msg_slam_correct(contract, aces, pts):
     """סלם הצליח."""
-    return f'נכון\nיש {aces} מפתחות\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
+    return f'נכון\nיש {aces} אסים\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
 
 
 def msg_slam_stop(contract, aces, pts):
     """עצרנו לפני סלם — נכון."""
-    return f'נכון\nיש {aces} מפתחות בלבד\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
+    return f'נכון\nיש {aces} אסים בלבד\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
 
 
 def msg_slam_wrong(bid, correct, aces, pts):
     """הכרזת סלם שגויה."""
-    return f'יש {aces} מפתחות\n{pts} נקודות\nההכרזה הנכונה\n{correct}'
+    return f'יש {aces} אסים\n{pts} נקודות\nההכרזה הנכונה\n{correct}'
 
 
 def msg_no_slam(pts, contract):

@@ -50,7 +50,7 @@ class LessonRobotOpens1NT(BaseLesson):
         self.app.bidding_box.set_last_bid('1NT')
         if LessonRobotOpens1NT._deal_count <= 3:
             self.app.set_instruction_table(
-                'מחשב פתח 1NT. מה תענה?',
+                'מחשב פתח 1NT. מה תענה',
                 [
                     ('פס',  '0-7 נקודות גבוהות'),
                     ('2NT', '8-9 נקודות גבוהות'),
@@ -80,7 +80,7 @@ class LessonRobotOpens1NT(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
                 return
             self._tries += 1
             self._last_wrong_bid = bid

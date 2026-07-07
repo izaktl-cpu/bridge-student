@@ -590,10 +590,11 @@ def deal_slam_major(major='H'):
                 if not (22 <= combined <= 32):
                     continue
             elif scenario == 'slam':
-                if total_kc < 4:
+                # תואם לכלל השיעור: 6M רק עם 5 מפתחות + 33 נק'
+                if total_kc < 5:
                     continue
             else:  # stop
-                if total_kc >= 4:
+                if total_kc >= 5:
                     continue
 
             e = remaining[13:26]
@@ -611,7 +612,7 @@ def deal_slam_nt_mode_a():
     25% slam: S=16-18 ו-total>=33 (מוביל ל-6NT ישיר, בלי שאלת 5NT).
     """
     r = random.random()
-    scenario = 'grand_try' if r < 0.10 else ('slam' if r < 0.35 else 'plain')
+    scenario = 'grand_try' if r < 0.10 else ('slam' if r < 0.60 else 'plain')
 
     if scenario in ('grand_try', 'slam'):
         # שילוב HCP גבוה בשני הצדדים ביחד נדיר מדי ל-_try על חלוקה אקראית מלאה.
@@ -663,7 +664,10 @@ def deal_slam_nt_mode_d(opening='C', response='S'):
     רגיל: S=18-20, ללא 5+ סדרה — חמישייה: S=20, בדיוק 4 בצבע-תגובה, 5+ מינור.
     """
     open_sym = SUIT_SYMBOLS[opening]
-    use_five = random.random() < 0.4
+    # רוב מוחלט של שיעור 8 מסתיים ב-NT; התאמת-מינור (RKCB) היא חריג
+    use_five = random.random() < 0.15
+    # 60% מהמקרה המאוזן (NT) הם סלם — 33+ נק' משותפות
+    use_slam = random.random() < 0.60
 
     for _outer in range(_MAX_TRIES):
         deck = make_deck()
@@ -683,7 +687,8 @@ def deal_slam_nt_mode_d(opening='C', response='S'):
                 continue
             if suit_len(s, response) != 4:
                 continue
-            if not any(suit_len(s, su) >= 5 for su in ['D', 'C']):
+            # 5+ קלפים בצבע-הפתיחה של N → התאמת מינור (מוביל לרצף 2m + RKCB)
+            if suit_len(s, opening) < 5:
                 continue
         else:
             if not (18 <= hs <= 20):
@@ -702,8 +707,16 @@ def deal_slam_nt_mode_d(opening='C', response='S'):
                 continue
             if suit_len(n, 'H') >= 4 or suit_len(n, 'S') >= 4:
                 continue
-            if not use_five and hn < 15 and hs > 18:
+            # במקרה החמישייה: N צריך 5+ במינור לרבאד 2m אמין (התאמה 10+)
+            if use_five and suit_len(n, opening) < 5:
                 continue
+            # המקרה המאוזן: שולטים בסלם לפי נקודות משותפות (33+)
+            if not use_five:
+                combined = hs + hn
+                if use_slam and combined < 33:
+                    continue
+                if not use_slam and combined >= 33:
+                    continue
             e = remaining[13:26]
             w = remaining[26:]
             return {'N': n, 'E': e, 'S': s, 'W': w}
@@ -762,7 +775,7 @@ def deal_slam_nt_mode_b():
     65% non-slam: S=5-12.
     """
     r = random.random()
-    scenario = 'grand' if r < 0.10 else ('slam' if r < 0.35 else 'plain')
+    scenario = 'grand' if r < 0.10 else ('slam' if r < 0.60 else 'plain')
     hs_range = {'grand': (17, 18), 'slam': (13, 15), 'plain': (5, 12)}[scenario]
 
     # דיל דו-שלבי: קובעים קודם את N (20-22 מאוזן, נדיר), ואז מחפשים S בין הנותרים.
@@ -798,7 +811,7 @@ def deal_slam_nt_mode_c(opening='C', response='H'):
     65% non-slam: S=14-20, total<33 (תגובה 3NT או 4NT שנדחית).
     """
     open_sym = SUIT_SYMBOLS[opening]
-    use_slam = random.random() < 0.35
+    use_slam = random.random() < 0.60
 
     for _outer in range(80_000):
         deck = make_deck()

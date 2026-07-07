@@ -68,7 +68,7 @@ class LessonNTOpen(BaseLesson):
                 self._stage = 'rebid'
                 self._tries = 0
                 self.app.set_instruction_table(
-                    'צפון הזמין 2NT. מה תכריז?',
+                    'צפון הזמין 2NT. מה תכריז',
                     [
                         ('פס', '15 נקודות'),
                         ('3NT', '16-17 נקודות'),
@@ -90,7 +90,7 @@ class LessonNTOpen(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')                # W
                 self.app.auction_widget.add_bid('Pass')                # N
                 self.app.auction_widget.add_bid('Pass')                # E
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message("1NT")}', ok=False)
+                self._finish(f'{self._wrong_message("1NT")}', ok=False)
 
     # ── שלב 2: תלמיד מגיב אחרי 2NT ────────────────────────────────────────
 
@@ -116,7 +116,7 @@ class LessonNTOpen(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')                # W
                 self.app.auction_widget.add_bid('Pass')                # N
                 self.app.auction_widget.add_bid('Pass')                # E
-                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
+                self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     # ── סיום ───────────────────────────────────────────────────────────────
 

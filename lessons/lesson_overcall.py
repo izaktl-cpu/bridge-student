@@ -15,8 +15,8 @@ def _hand_eval(hand, trump_suit=None):
     h  = hcp(hand)
     dp = dist_fit_pts(hand, trump=trump_suit) if trump_suit else 0
     if dp:
-        return f'{h} נק׳ גבוהות + {dp} חלוקה = {h + dp} סה״כ'
-    return f'{h} נק׳ גבוהות'
+        return f'{h} נקודות גבוהות ו-{dp} חלוקה, סך {h + dp}'
+    return f'{h} נקודות גבוהות'
 
 
 def _n_bid_meaning(n_bid, s_bid1):
@@ -32,11 +32,11 @@ def _n_bid_meaning(n_bid, s_bid1):
     if n_sym == s_sym:
         diff = n_lvl - s_lvl
         if diff == 1:
-            return '6-9 נק׳. מינימום'
+            return '6-9 נקודות. מינימום'
         if diff == 2:
-            return '10-12 נק׳. הזמנה'
+            return '10-12 נקודות. הזמנה'
         if diff >= 3 or n_lvl == 4:
-            return '13+ נק׳. משחק'
+            return '13+ נקודות. משחק'
     return ''
 
 
@@ -79,37 +79,37 @@ def _s_rebid_correct(s_hand, s_bid1, n_last_bid, op_bid='Pass'):
         op_suit = _SYM_TO_SUIT.get(op_bid[1], '') if len(op_bid) >= 2 and op_bid[0].isdigit() else ''
 
         if diff == 1:
-            # N מינימום (7-10 נק') — בכל רמה
+            # N מינימום (7-10 נקודות) — בכל רמה
             if s_suit in ('S', 'H'):
                 sp    = _shortage_pts(s_hand, s_suit)
                 total = h + sp
                 if total >= 18:
-                    return f'4{s_sym}', f'{h}+{sp} נק׳ חוסר, סה״כ {total}. משחק'
+                    return f'4{s_sym}', f'{h}+{sp} נקודות חוסר, סה״כ {total}. משחק'
                 if total >= 16:
-                    return f'3{s_sym}', f'{h}+{sp} נק׳ חוסר, סה״כ {total}. ניסיון משחק'
-            return 'Pass', f'{h} נק׳. שותף מינימום, פס'
+                    return f'3{s_sym}', f'{h}+{sp} נקודות חוסר, סה״כ {total}. ניסיון משחק'
+            return 'Pass', f'{h} נקודות. שותף מינימום, פס'
 
-        # N הזמין (diff>=2) — N=11-12 נק'
+        # N הזמין (diff>=2) — N=11-12 נקודות
         if h >= 14:
             if s_suit in ('S', 'H'):
-                return f'4{s_sym}', f'{h} נק׳, יד חזקה. משחק'
+                return f'4{s_sym}', f'{h} נקודות, יד חזקה. משחק'
             # מינור: צריך עוצר בצבע הפותח
             if op_suit and has_stopper(s_hand, op_suit):
-                return '3NT', f'{h} נק׳, עוצר. 3NT'
-            return 'Pass', f'{h} נק׳. אין עוצר ב-{op_bid[1]}, פס'
-        return 'Pass', f'{h} נק׳. לא מספיק למשחק, פס'
+                return '3NT', f'{h} נקודות, עוצר. 3NT'
+            return 'Pass', f'{h} נקודות. אין עוצר ב-{op_bid[1]}, פס'
+        return 'Pass', f'{h} נקודות. לא מספיק למשחק, פס'
 
     # N הכריז צבע חדש
     if n_sym and n_sym != s_sym:
         if d.get(n_suit, 0) >= 3:
-            return f'{n_lvl + 1}{n_sym}', f'{h} נק׳, {d[n_suit]} קלפי {n_sym}. תמיכה'
+            return f'{n_lvl + 1}{n_sym}', f'{h} נקודות, {d[n_suit]} קלפי {n_sym}. תמיכה'
         if h >= 13:
             # חישוב רמה נכונה מעל הכרזת N
             s_r = _BID_RANK.get(s_sym, 0)
             n_r = _BID_RANK.get(n_sym, 0)
             rebid_lvl = n_lvl if s_r > n_r else n_lvl + 1
-            return f'{rebid_lvl}{s_sym}', f'{h} נק׳. חוזר לצבע שלי'
-        return 'Pass', f'{h} נק׳. פס'
+            return f'{rebid_lvl}{s_sym}', f'{h} נקודות. חוזר לצבע שלי'
+        return 'Pass', f'{h} נקודות. פס'
 
     return 'Pass', 'פס'
 
@@ -142,7 +142,7 @@ def _w_competitive_bid(w_hand, e_bid, s_bid, last_rank):
     e_suit = _SYM_TO_SUIT.get(e_sym, '')
     s_suit = _SYM_TO_SUIT.get(s_bid[1], '') if len(s_bid) == 2 else ''
 
-    # תמיכה בצבע E (3+ קלפים, 6+ נק')
+    # תמיכה בצבע E (3+ קלפים, 6+ נקודות)
     if e_suit and d.get(e_suit, 0) >= 3 and h >= 6:
         for lvl in range(1, 5):
             candidate = f'{lvl}{e_sym}'
@@ -151,7 +151,7 @@ def _w_competitive_bid(w_hand, e_bid, s_bid, last_rank):
                     break
                 return candidate
 
-    # צבע חדש (5+ קלפים, 10+ נק')
+    # צבע חדש (5+ קלפים, 10+ נקודות)
     if h >= 10:
         for suit in ['C', 'D', 'H', 'S']:
             if suit in (e_suit, s_suit):
@@ -279,7 +279,7 @@ def _responder_continue(w_hand, w_bid, e_rebid, last_rank):
     e_suit = _SYM_TO_SUIT.get(e_sym, '')
     e_lvl  = int(e_rebid[0])
 
-    # E חוזר לצבעו → W עם תמיכה 3+ ונק' מספיק → משחק
+    # E חוזר לצבעו → W עם תמיכה 3+ ונקודות מספיק → משחק
     if e_suit and d.get(e_suit, 0) >= 3:
         if h >= 11 and e_suit in ('S', 'H'):
             bid = f'4{e_sym}'
@@ -372,7 +372,7 @@ class LessonOvercall(BaseLesson):
         self.app.bidding_box.set_last_bid(self._e_bid)
         eval_txt = _hand_eval(self.hands['S'])
         self.app.set_instruction_table(
-            f'{eval_txt}\nמה תכריז?',
+            f'{eval_txt}\nמה תכריז',
             [
                 ('בגובה 1', '9-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
                 ('בגובה 2', '12-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
@@ -542,7 +542,7 @@ class LessonOvercall(BaseLesson):
         n_info = self._n_last_bid if self._n_last_bid else ''
         n_meaning = _n_bid_meaning(n_info, self._s_bid1 or '')
         self.app.set_instruction_table(
-            f'{eval_txt}\n{n_meaning}\nמה תכריז?',
+            f'{eval_txt}\n{n_meaning}\nמה תכריז',
             [('4M / 3NT', 'יד חזקה. משחק'),
              ('Pass',     'מינימום. פס')]
         )

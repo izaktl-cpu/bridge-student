@@ -322,7 +322,7 @@ class LessonRobotOpens2C(BaseLesson):
             if s_first in ('2♥', '2♠'):
                 trump_sym = '♥' if s_first == '2♥' else '♠'
                 self.app.set_instruction_table(
-                    'מה תכריז?',
+                    'מה תכריז',
                     [
                         ('4NT', f'8+ נקודות. Blackwood, חוקר 6{trump_sym}'),
                         (f'4{trump_sym}', 'רק משחק מלא'),
@@ -331,7 +331,7 @@ class LessonRobotOpens2C(BaseLesson):
             elif s_first == '2NT':
                 # S הכריז 2NT חיובי. N מכריז 3NT ללא מיגור
                 self.app.set_instruction_table(
-                    'מה תכריז?',
+                    'מה תכריז',
                     [
                         ('Pass', '8 נקודות. לא מספיק לסלם'),
                         ('4NT', '9 נקודות. כמותי. N עוצר עם 23, 6NT עם 24'),
@@ -340,7 +340,7 @@ class LessonRobotOpens2C(BaseLesson):
                 )
             else:
                 self.app.set_instruction_table(
-                    'מה תכריז?',
+                    'מה תכריז',
                     [
                         ('פס',  '0-3 נקודות. אין עניין'),
                         ('3NT', '4-8 נקודות, מאוזן. משחק מלא'),
@@ -356,9 +356,9 @@ class LessonRobotOpens2C(BaseLesson):
             s_second = self._history_s[1]
             if s_second == '3♣':  # תגובה לסטיימן
                 if n_bid == '3♦':
-                    self.app.set_instruction('מה תכריז?')
+                    self.app.set_instruction('מה תכריז')
                 else:
-                    self.app.set_instruction('מה תכריז?')
+                    self.app.set_instruction('מה תכריז')
             else:  # השלמת טרנספר
                 sym = n_bid[1]
                 suit = {'♥': 'H', '♠': 'S'}[sym]
@@ -366,7 +366,7 @@ class LessonRobotOpens2C(BaseLesson):
                 rows = [('3NT', f'5 קלפי {sym}. מזמין. הפותח יבחר {n_bid} אם יש 3+ קלפי {sym}')]
                 if trump_len >= 6:
                     rows.insert(0, (f'4{sym}', f'6+ קלפי {sym}. משחק מלא ישיר'))
-                self.app.set_instruction_table('מה תכריז?', rows)
+                self.app.set_instruction_table('מה תכריז', rows)
         elif n_bid in ('2♥', '2♠', '3♣', '3♦', '3♥', '3♠') and self._round == 2:
             sym = n_bid[1]
             suit = {'♥': 'H', '♠': 'S', '♣': 'C', '♦': 'D'}[sym]
@@ -378,7 +378,7 @@ class LessonRobotOpens2C(BaseLesson):
                 if h >= 8:
                     rows.append(('4NT', f'8+ נקודות. Blackwood לחקור 6{sym}'))
                 rows.append((f'4{sym}', 'משחק מלא'))
-                self.app.set_instruction_table('מה תכריז?', rows)
+                self.app.set_instruction_table('מה תכריז', rows)
                 return
             if is_major:
                 other_sym = '♠' if sym == '♥' else '♥'
@@ -398,11 +398,11 @@ class LessonRobotOpens2C(BaseLesson):
                     level = '2' if _2ok else '3'
                     rows.append((f'{level}{other_sym}', f'{other_len} קלפי {other_sym}, ללא התאמה ב-{sym}'))
                 rows.append(('3♣', f'ללא התאמה, ללא מיגור.\nשקר. 3♣ לא מראה תלתנים.\nN יכריז 3NT ויגלם'))
-                self.app.set_instruction_table('מה תכריז?', rows)
+                self.app.set_instruction_table('מה תכריז', rows)
             else:
                 # מינור. מראים מיגור אחר ב-3 או 3NT
                 self.app.set_instruction_table(
-                    'מה תכריז?',
+                    'מה תכריז',
                     [
                         ('3♠',  '5+ קלפי ♠. מראה מיגור'),
                         ('3♥',  '5+ קלפי ♥. מראה מיגור'),
@@ -410,7 +410,7 @@ class LessonRobotOpens2C(BaseLesson):
                     ]
                 )
         else:
-            self.app.set_instruction('מה תכריז?')
+            self.app.set_instruction('מה תכריז')
 
     # ── הסברים ─────────────────────────────────────────────────────────────
 
@@ -501,7 +501,7 @@ class LessonRobotOpens2C(BaseLesson):
             s_aces = sum(1 for c in self.hands['S'] if card_rank(c) == 'A')
             total  = n_aces + s_aces
             rows = [
-                ('6NT', '4 אסים + 33 נק׳ משותפות. סלם ב-NT'),
+                ('6NT', '4 אסים + 33 נקודות משותפות. סלם ב-NT'),
                 ('5NT', 'פחות מזה. עוצרים'),
             ]
             instr = f'סה״כ {total} אסים מ-4'
@@ -573,7 +573,7 @@ class LessonRobotOpens2C(BaseLesson):
         self._stage = 'gerber'
         self._tries = 0
         self.app.set_instruction_table(
-            "כמה אסים יש לך?",
+            "כמה אסים יש לך",
             [
                 ('4♦',  '0 או 4 אסים'),
                 ('4♥',  '1 אס'),
@@ -641,7 +641,7 @@ class LessonRobotOpens2C(BaseLesson):
         self.app.set_instruction_table(
             f'סה״כ {total} אסים מ-4',
             [
-                ('6NT', '4 אסים + 33 נק׳ משותפות. סלם'),
+                ('6NT', '4 אסים + 33 נקודות משותפות. סלם'),
                 ('5NT', 'פחות מזה. עוצרים'),
             ]
         )

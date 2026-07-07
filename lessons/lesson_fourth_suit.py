@@ -49,7 +49,7 @@ def _suit_of(bid):
 
 def _hand_eval(hand):
     h = hcp(hand)
-    return f'{h} נק׳ גבוהות'
+    return f'{h} נקודות גבוהות'
 
 
 def _stopper_reply(hand):
@@ -101,7 +101,7 @@ class LessonFourthSuit(BaseLesson):
             s_sym    = _CODE[cfg['s_suit']]
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\nמה תכריז?',
+                f'{eval_txt}\nמה תכריז',
                 [(cfg['s_response'], f'4+ קלפי {s_sym}. כריזת צבע חדש')]
             )
 
@@ -112,8 +112,8 @@ class LessonFourthSuit(BaseLesson):
             self._stage = 'response'
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\nמה תכריז?',
-                [('2♦', '6-10 נק׳, 5+ קלפי ♦. תמיכה חלשה')]
+                f'{eval_txt}\nמה תכריז',
+                [('2♦', '6-10 נקודות, 5+ קלפי ♦. תמיכה חלשה')]
             )
 
     # ── ניתוב ─────────────────────────────────────────────────────────────
@@ -154,12 +154,12 @@ class LessonFourthSuit(BaseLesson):
                 self._n_bid, self._s_bid1, self._n_rebid)
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\nמה תכריז?',
+                f'{eval_txt}\nמה תכריז',
                 [
                     (f'{self._correct_fsf}',
-                     f'11+ נק׳, שואל עוצר ב-{fsym}\n(צבע רביעי. לא טבעי!)'),
-                    ('3NT', '13+ נק׳, יש לי עוצר. ישיר'),
-                    ('2NT', '11-12 נק׳, יש עוצר. הזמנה'),
+                     f'11+ נקודות, שואל עוצר ב-{fsym}\n(צבע רביעי. לא טבעי!)'),
+                    ('3NT', '13+ נקודות, יש לי עוצר. ישיר'),
+                    ('2NT', '11-12 נקודות, יש עוצר. הזמנה'),
                 ]
             )
         else:
@@ -174,7 +174,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. יש לך 4+ קלפי {s_sym}',
+                    f'בחרת {bid}\nהנכון: {correct}. יש לך 4+ קלפי {s_sym}',
                     ok=False, correct_answer=correct)
 
     # ── FSF שלב 1: הכרזת FSF ─────────────────────────────────────────────
@@ -234,7 +234,7 @@ class LessonFourthSuit(BaseLesson):
                 _, fsym, _ = compute_fourth_suit(
                     self._n_bid, self._s_bid1, self._n_rebid)
                 self._finish(
-                    f'טעית בפעם השנייה.\nבחרת {bid}\n'
+                    f'בחרת {bid}\n'
                     f'הנכון: {correct}. צבע רביעי, שואל עוצר ב-{fsym}\n'
                     f'{self._fsf_expl}',
                     ok=False, correct_answer=correct)
@@ -272,7 +272,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 _, expl = s_final_bid(self.hands['S'], n_resp, self._s_suit, self._opener_suit)
                 self._finish(
-                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. {expl}',
+                    f'בחרת {bid}\nהנכון: {correct}. {expl}',
                     ok=False, correct_answer=correct)
 
     # ── Stopper Ask שלב 0: תמיכה 2♦ ─────────────────────────────────────
@@ -294,7 +294,7 @@ class LessonFourthSuit(BaseLesson):
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
                 f'{eval_txt}\n'
-                f'שאלת עוצר ב-{self._ask_sym}\nמה תכריז?',
+                f'שאלת עוצר ב-{self._ask_sym}\nמה תכריז',
                 [
                     ('3NT', 'יש עוצר ♥. 3NT'),
                     ('4♦',  'אין עוצר ♥. חוזרים ל-♦'),
@@ -305,7 +305,7 @@ class LessonFourthSuit(BaseLesson):
             if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(
-                    f'נסה שוב. רמז: עם 6-10 נק׳ ו-5+ קלפי ♦. תמיכה חלשה.',
+                    f'נסה שוב. רמז: עם 6-10 נקודות ו-5+ קלפי ♦. תמיכה חלשה.',
                     ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -313,7 +313,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. 6-10 נק׳, 5+ קלפי ♦',
+                    f'בחרת {bid}\nהנכון: {correct}. 6-10 נקודות, 5+ קלפי ♦',
                     ok=False, correct_answer=correct)
 
     # ── Stopper Ask שלב 1: תגובה לשאלת עוצר ─────────────────────────────
@@ -339,10 +339,10 @@ class LessonFourthSuit(BaseLesson):
                 hs = hcp(self.hands['S'])
                 if hn + hs >= 28:
                     n_final = '5♦'
-                    expl = f'{hn}+{hs}={hn+hs} נק׳. 5♦'
+                    expl = f'{hn}+{hs}={hn+hs} נקודות. 5♦'
                 else:
                     n_final = 'Pass'
-                    expl = f'{hn}+{hs}={hn+hs} נק׳. פס'
+                    expl = f'{hn}+{hs}={hn+hs} נקודות. פס'
                 self.app.auction_widget.add_bid(n_final)   # N
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
@@ -365,7 +365,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. {self._stopper_expl}',
+                    f'בחרת {bid}\nהנכון: {correct}. {self._stopper_expl}',
                     ok=False, correct_answer=correct)
 
     # ── FSF עזרים ────────────────────────────────────────────────────────
@@ -377,37 +377,37 @@ class LessonFourthSuit(BaseLesson):
             h = hcp(self.hands['S'])
             if n_resp == '2NT' and h <= 12:
                 self.app.set_instruction_table(
-                    f'שותף הכריז {n_resp}. {n_why}\nמה תכריז?',
-                    [('Pass', f'{h} נק׳, שותף מינימום. נשאר ב-2NT')]
+                    f'שותף הכריז {n_resp}. {n_why}\nמה תכריז',
+                    [('Pass', f'{h} נקודות, שותף מינימום. נשאר ב-2NT')]
                 )
             else:
                 self.app.set_instruction_table(
-                    f'שותף הכריז {n_resp}. {n_why}\nמה תכריז?',
+                    f'שותף הכריז {n_resp}. {n_why}\nמה תכריז',
                     [('3NT', 'שותף יש עוצר. משחק')]
                 )
         elif _suit_of(n_resp) == 'H':
             self.app.set_instruction_table(
-                f'שותף הכריז {n_resp}. {n_why}\nמה תכריז?',
+                f'שותף הכריז {n_resp}. {n_why}\nמה תכריז',
                 [('4♥', 'שותף תמך ב-♥. משחק')]
             )
         elif _suit_of(n_resp) == self._opener_suit:
             correct = self._correct_final
             h = hcp(self.hands['S'])
             if correct == 'Pass':
-                hint = f'{h} נק׳. אין מספיק נקודות למשחק, פס'
+                hint = f'{h} נקודות. אין מספיק נקודות למשחק, פס'
             elif correct.startswith('5'):
-                hint = f'{h} נק׳. 5+ בצבע שותף, אין עוצרים. {correct}'
+                hint = f'{h} נקודות. 5+ בצבע שותף, אין עוצרים. {correct}'
             else:
                 hint = 'מנסה 3NT'
             self.app.set_instruction_table(
                 f'שותף הכריז {n_resp}. {n_why}\n'
-                f'אין עוצר ב-{fsym}, אין תמיכה ב-♥\nמה תכריז?',
+                f'אין עוצר ב-{fsym}, אין תמיכה ב-♥\nמה תכריז',
                 [(correct, hint)]
             )
         else:
             correct = self._correct_final
             self.app.set_instruction_table(
-                f'שותף הכריז {n_resp}. {n_why}\nמה תכריז?',
+                f'שותף הכריז {n_resp}. {n_why}\nמה תכריז',
                 [(correct, 'מנסה 3NT')]
             )
 

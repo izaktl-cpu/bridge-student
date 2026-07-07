@@ -45,21 +45,21 @@ def _n_auto_bid(n_hand, oc_bid, w_bid, s_bid):
         oc_r   = _RANK.get(oc_sym, 5)
 
         if d.get(s_suit, 0) >= 3:
-            return f'{s_lvl + 1}{s_sym}', f'{h} נק׳, תמיכה בצבע שלך'
+            return f'{s_lvl + 1}{s_sym}', f'{h} נקודות, תמיכה בצבע שלך'
         if h >= 14:
             # N חוזר לצבע שלו. חישוב רמה מינימלית
             n_lvl = s_lvl if oc_r > s_r else s_lvl + 1
-            return f'{n_lvl}{oc_sym}', f'{h} נק׳, חוזר לצבע שלי'
-        return 'Pass', f'{h} נק׳. מינימום'
+            return f'{n_lvl}{oc_sym}', f'{h} נקודות, חוזר לצבע שלי'
+        return 'Pass', f'{h} נקודות. מינימום'
 
     # S תמך בצבע N
     if len(s_bid) == 2 and s_bid[1] == oc_sym:
         s_lvl = int(s_bid[0])
         if s_lvl == oc_lvl + 2 and h >= 15:  # S הזמין. N מקבל
             if oc_suit in ('S', 'H'):
-                return f'4{oc_sym}', f'{h} נק׳, מקבל הזמנה. משחק'
-            return '3NT', f'{h} נק׳, מקבל הזמנה'
-        return 'Pass', f'{h} נק׳. פס'
+                return f'4{oc_sym}', f'{h} נקודות, מקבל הזמנה. משחק'
+            return '3NT', f'{h} נקודות, מקבל הזמנה'
+        return 'Pass', f'{h} נקודות. פס'
 
     return 'Pass', 'פס'
 
@@ -93,17 +93,17 @@ def _s_correct_bid(s_hand, oc_bid, w_bid, n_last_bid, s_prev_bid=None):
     if n_sym and n_sym == s_sym:
         if h >= 15:
             if s_suit in ('S', 'H'):
-                return f'4{s_sym}', f'{h} נק׳, יד חזקה. משחק'
-            return '3NT', f'{h} נק׳, יד חזקה. 3NT'
-        return 'Pass', f'{h} נק׳. הספקת'
+                return f'4{s_sym}', f'{h} נקודות, יד חזקה. משחק'
+            return '3NT', f'{h} נקודות, יד חזקה. 3NT'
+        return 'Pass', f'{h} נקודות. הספקת'
 
     # N חזר לצבע שלו (אוברקול)
     if n_sym == oc_sym:
         if d.get(oc_suit, 0) >= 3 and h >= 13:
             if oc_suit in ('S', 'H'):
-                return f'4{oc_sym}', f'{h} נק׳, 3+ קלפי {oc_sym}. משחק'
-            return '3NT', f'{h} נק׳. 3NT'
-        return 'Pass', f'{h} נק׳. פס'
+                return f'4{oc_sym}', f'{h} נקודות, 3+ קלפי {oc_sym}. משחק'
+            return '3NT', f'{h} נקודות. 3NT'
+        return 'Pass', f'{h} נקודות. פס'
 
     return 'Pass', 'פס'
 
@@ -145,19 +145,19 @@ class LessonOvercallResponse(BaseLesson):
         self.app.bidding_box.set_last_bid(self._n_bid)
         if is_minor:
             table = [
-                (f'{oc_lvl + 1}{oc_sym}', f'3+ קלפי {oc_sym}, 10+ נק׳'),
-                ('צבע חדש',               '5+ קלפים, 11+ נק׳'),
-                ('Pass',                  'פחות מ-10 נק׳'),
+                (f'{oc_lvl + 1}{oc_sym}', f'3+ קלפי {oc_sym}, 10+ נקודות'),
+                ('צבע חדש',               '5+ קלפים, 11+ נקודות'),
+                ('Pass',                  'פחות מ-10 נקודות'),
             ]
         else:
             table = [
-                (f'{oc_lvl + 1}{oc_sym}', f'3+ קלפי {oc_sym}, 7-10 נק׳'),
-                (f'{oc_lvl + 2}{oc_sym}', f'3+ קלפי {oc_sym}, 11-12 נק׳. הזמנה'),
-                ('צבע חדש',               '5+ קלפים, 11+ נק׳'),
+                (f'{oc_lvl + 1}{oc_sym}', f'3+ קלפי {oc_sym}, 7-10 נקודות'),
+                (f'{oc_lvl + 2}{oc_sym}', f'3+ קלפי {oc_sym}, 11-12 נקודות. הזמנה'),
+                ('צבע חדש',               '5+ קלפים, 11+ נקודות'),
                 ('Pass',                  'יד חלשה'),
             ]
         self.app.set_instruction_table(
-            f'יריב פתח {self._w_bid}. שותף הכריז {self._n_bid}. מה תענה?',
+            f'יריב פתח {self._w_bid}. שותף הכריז {self._n_bid}. מה תענה',
             table
         )
 
@@ -209,7 +209,7 @@ class LessonOvercallResponse(BaseLesson):
             self._tries = 0
             self.app.bidding_box.set_last_bid(nr_bid)
             self.app.set_instruction_table(
-                f'שותף הכריז {nr_bid} ({nr_why}). מה תכריז?',
+                f'שותף הכריז {nr_bid} ({nr_why}). מה תכריז',
                 [
                     ('4M / 3NT', 'יד חזקה. משחק'),
                     ('Pass',     'מינימום. פס'),

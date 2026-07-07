@@ -52,7 +52,7 @@ class LessonMinorNT(BaseLesson):
     def _set_instruction(self):
         sym = _S[self._minor]
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [
                 (f'3{sym}', f'11+ נקודות, 5+ קלפי {sym}'),
             ]
@@ -63,7 +63,7 @@ class LessonMinorNT(BaseLesson):
         ask_sym  = _S[ask_suit] if ask_suit else n_bid
         sym      = _S[self._minor]
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [
                 ('3NT',    f'יש לי עוצר ב-{ask_sym}'),
                 (f'4{sym}', f'אין לי עוצר ב-{ask_sym}'),

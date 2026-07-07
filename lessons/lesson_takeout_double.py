@@ -76,18 +76,18 @@ class LessonTakeoutDouble(BaseLesson):
         is_minor = best in ('C', 'D')
         if is_minor:
             rows = [
-                ('ברמה נמוכה', '0–10 נק׳ (מינור)'),
-                ('קפיצה',      '11–12 נק׳ (מינור)'),
-                ('קיו ביט',    '13+ נק׳ (מינור)'),
+                ('ברמה נמוכה', '0–10 נקודות (מינור)'),
+                ('קפיצה',      '11–12 נקודות (מינור)'),
+                ('קיו ביט',    '13+ נקודות (מינור)'),
             ]
         else:
             rows = [
-                ('ברמה נמוכה', '0–8 נק׳'),
-                ('קפיצה',      '9–12 נק׳'),
-                ('קיו ביט',    '13+ נק׳'),
+                ('ברמה נמוכה', '0–8 נקודות'),
+                ('קפיצה',      '9–12 נקודות'),
+                ('קיו ביט',    '13+ נקודות'),
             ]
         self.app.set_instruction_table(
-            f'W פתח {self._w_bid}, שותף הכריז X.\nיש לך {h} נק׳. מה תכריז?',
+            f'W פתח {self._w_bid}, שותף הכריז X.\nיש לך {h} נקודות. מה תכריז',
             rows
         )
 
@@ -116,7 +116,7 @@ class LessonTakeoutDouble(BaseLesson):
                     self.app.auction_widget.add_bid('Pass')       # W
                     self._finish(
                         f'{self._next_opener()}\n{self._expl}\n'
-                        f'שותף עם {hn} נק׳ מעלה ל-{n_raise}\nההכרזה הנכונה\n{bid}',
+                        f'שותף עם {hn} נקודות מעלה ל-{n_raise}\nההכרזה הנכונה\n{bid}',
                         ok=True)
                 else:
                     # N פס — W-פס, N-פס, E-פס
@@ -125,7 +125,7 @@ class LessonTakeoutDouble(BaseLesson):
                     self.app.auction_widget.add_bid('Pass')       # E
                     self._finish(
                         f'{self._next_opener()}\n{self._expl}\n'
-                        f'שותף עם {hn} נק׳ פס\nההכרזה הנכונה\n{bid}',
+                        f'שותף עם {hn} נקודות פס\nההכרזה הנכונה\n{bid}',
                         ok=True)
         else:
             self._tries += 1
@@ -165,7 +165,7 @@ class LessonTakeoutDouble(BaseLesson):
         n_sym = _suit_sym(n_suit) if n_suit else 'NT'
         n_len = d.get(n_suit, 0) if n_suit else 0
         self.app.set_instruction(
-            f'יש לך {n_len} קלפי {n_sym}\nמה תכריז?'
+            f'יש לך {n_len} קלפי {n_sym}\nמה תכריז'
         )
 
     def _on_phase1_cue(self, bid):
@@ -217,10 +217,10 @@ class LessonTakeoutDouble(BaseLesson):
         h  = hcp(self.hands['S'])
         es = _suit_sym(self._e_suit)
         self.app.set_instruction_table(
-            f'E פתח {self._e_bid}.\nיש לך {h} נק׳. מה תכריז?',
+            f'E פתח {self._e_bid}.\nיש לך {h} נקודות. מה תכריז',
             [
-                ('X',   f'12-16 נק׳, קוצר ב-{es}, 3+ בכל השאר\nאו 17+ נק׳ (כל חלוקה)'),
-                ('1NT', f'15-18 נק׳, מאוזן, עוצר ב-{es}'),
+                ('X',   f'12-16 נקודות, קוצר ב-{es}, 3+ בכל השאר\nאו 17+ נקודות (כל חלוקה)'),
+                ('1NT', f'15-18 נקודות, מאוזן, עוצר ב-{es}'),
                 ('Pass', 'לא עומד בתנאים'),
             ]
         )
@@ -246,7 +246,7 @@ class LessonTakeoutDouble(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')        # N
                 msg = (f'{self._next_opener()}\n'
                        f'{self._correct_reason(h, d, "X")}\n'
-                       f'N עם {hn} נק׳ עונה {n_bid}\n'
+                       f'N עם {hn} נקודות עונה {n_bid}\n'
                        f'ההכרזה הנכונה\nX')
             elif correct == '1NT':
                 self.app.auction_widget.add_bid('Pass')  # W
@@ -272,16 +272,16 @@ class LessonTakeoutDouble(BaseLesson):
     def _correct_reason(self, h, d, correct):
         if correct == 'X':
             if h >= 17:
-                return f'{h} נק׳. דבל גדול (17+), כל חלוקה.'
+                return f'{h} נקודות. דבל גדול (17+), כל חלוקה.'
             ec = d.get(self._e_suit, 0)
-            return f'{h} נק׳, {ec} קלפים בצבע יריב, עומד בתנאים.'
+            return f'{h} נקודות, {ec} קלפים בצבע יריב, עומד בתנאים.'
         if correct == '1NT':
-            return f'{h} נק׳, מאוזן, עוצר ב-{_suit_sym(self._e_suit)}.'
+            return f'{h} נקודות, מאוזן, עוצר ב-{_suit_sym(self._e_suit)}.'
         return self._no_double_reason(h, d)
 
     def _no_double_reason(self, h, d):
         if not (12 <= h <= 16):
-            return f'{h} נק׳. לא בטווח 12–16.'
+            return f'{h} נקודות. לא בטווח 12–16.'
         ec = d.get(self._e_suit, 0)
         if ec > 3:
             es = _suit_sym(self._e_suit)

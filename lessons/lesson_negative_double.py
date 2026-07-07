@@ -119,18 +119,18 @@ class LessonNegativeDouble(BaseLesson):
         mn_bid = f'{mn_lvl}{mn_sym}' if unbid_minor else '—'
 
         rows = [
-            (um_bid,              f'5+ {um_sym}, {um_hcp}+ נק׳'),
-            ('3NT',               f'13+ נק׳, עוצר ב{es}'),
-            (f'קיו {es}',         f'13+ נק׳, אין עוצר'),
-            ('2NT',               f'11–12 נק׳, עוצר ב{es}'),
-            (mn_bid,              f'5+ {mn_sym}, 11+ נק׳'),
-            ('X',                 f'8+ נק׳, 4 {um_sym}'),
-            ('1NT',               f'7–10 נק׳, עוצר ב{es}'),
+            (um_bid,              f'5+ {um_sym}, {um_hcp}+ נקודות'),
+            ('3NT',               f'13+ נקודות, עוצר ב{es}'),
+            (f'קיו {es}',         f'13+ נקודות, אין עוצר'),
+            ('2NT',               f'11–12 נקודות, עוצר ב{es}'),
+            (mn_bid,              f'5+ {mn_sym}, 11+ נקודות'),
+            ('X',                 f'8+ נקודות, 4 {um_sym}'),
+            ('1NT',               f'7–10 נקודות, עוצר ב{es}'),
             ('פס',                'אין מספיק'),
         ]
         self.app.set_instruction_table(
             f'N פתח {self._n_bid}, E הכריז {self._e_bid}.\n'
-            f'יש לך {h} נק׳. מה תכריז?',
+            f'יש לך {h} נקודות. מה תכריז',
             rows
         )
 
@@ -219,13 +219,13 @@ class LessonNegativeDouble(BaseLesson):
 
         rows = [
             (um_bid,  f'3+ קלפי {um_sym}'),
-            (nt_bid,  f'12+ נק׳, עוצר ב{es}'),
+            (nt_bid,  f'12+ נקודות, עוצר ב{es}'),
             (mn_bid,  f'4+ קלפי {mn_sym}'),
             (ns_bid,  f'חזרה ל{_suit_sym(self._n_suit)}'),
         ]
         self.app.set_instruction_table(
             f'N פתח {self._n_bid}, E הכריז {self._e_bid}, S הכריז X.\n'
-            f'יש לך {h} נק׳. מה תכריז?',
+            f'יש לך {h} נקודות. מה תכריז',
             rows
         )
 
@@ -281,7 +281,7 @@ class LessonNegativeDouble(BaseLesson):
                     self._close_ok)
                 return
             elif s_suit and s_suit != e_suit:
-                # S מכריז סדרה — N מרים למשחק רק עם 18+ נק'
+                # S מכריז סדרה — N מרים למשחק רק עם 18+ נקודות
                 self._awaiting_close = False
                 d = distribution(n_hand)
                 h = hcp(n_hand)
@@ -289,13 +289,13 @@ class LessonNegativeDouble(BaseLesson):
                 if d[s_suit] >= 4 and h >= 18:
                     lvl = 4 if s_suit in ('H', 'S') else 5
                     n_bid = f'{lvl}{sym}'
-                    n_expl = f'{h} נק׳, {d[s_suit]} קלפי {sym}, משחק'
+                    n_expl = f'{h} נקודות, {d[s_suit]} קלפי {sym}, משחק'
                 elif d[s_suit] >= 4 and h >= 15:
                     n_bid = f'3{sym}'
-                    n_expl = f'{h} נק׳, {d[s_suit]} קלפי {sym}, הזמנה'
+                    n_expl = f'{h} נקודות, {d[s_suit]} קלפי {sym}, הזמנה'
                 else:
                     n_bid = 'Pass'
-                    n_expl = f'{h} נק׳, מינימום, פס'
+                    n_expl = f'{h} נקודות, מינימום, פס'
                 self.app.auction_widget.add_bid(bid)     # S
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid(n_bid)   # N

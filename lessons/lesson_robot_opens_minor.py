@@ -80,7 +80,7 @@ class LessonRobotOpensMinor(BaseLesson):
     def _set_respond_instruction(self):
         sym = _S[self._minor]
         self.app.set_instruction_table(
-            'מה תכריז?',
+            'מה תכריז',
             [
                 (f'2{sym}', '6-10 נקודות'),
                 (f'3{sym}', '11-12 נקודות'),
@@ -88,7 +88,7 @@ class LessonRobotOpensMinor(BaseLesson):
         )
 
     def _set_continue_instruction(self, n_bid):
-        self.app.set_instruction('מה תכריז?')
+        self.app.set_instruction('מה תכריז')
 
     # ── ניתוב הכרזות ──────────────────────────────────────────────────────
 
@@ -119,7 +119,7 @@ class LessonRobotOpensMinor(BaseLesson):
                 return
             # טעות שנייה — מציגים הודעה ברורה ואת ההכרזה הנכונה, מסיימים
             self.app.auction_widget.add_bid(bid, highlight=True)
-            self._finish(f'טעית בפעם השנייה.\nההכרזה הנכונה\n{correct}', ok=False)
+            self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
             return
 
         # תשובה נכונה

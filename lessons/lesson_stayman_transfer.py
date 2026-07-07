@@ -201,7 +201,7 @@ class LessonStaymanTransfer(BaseLesson):
         d = distribution(self.hands['S'])
         self.app.set_instruction(
             f'מחשב ענה 2♥. טרנספר הושלם. '
-            f'ל-S יש {d["H"]} קלפי ♥ ו-{h} נקודות. מה תכריז?')
+            f'ל-S יש {d["H"]} קלפי ♥ ו-{h} נקודות. מה תכריז')
         self.app.bidding_box.set_last_bid('2♥')
 
     def _do_transfer_spade(self, why):
@@ -219,7 +219,7 @@ class LessonStaymanTransfer(BaseLesson):
         d = distribution(self.hands['S'])
         self.app.set_instruction(
             f'מחשב ענה 2♠. טרנספר הושלם. '
-            f'ל-S יש {d["S"]} קלפי ♠ ו-{h} נקודות. מה תכריז?')
+            f'ל-S יש {d["S"]} קלפי ♠ ו-{h} נקודות. מה תכריז')
         self.app.bidding_box.set_last_bid('2♠')
 
     def _transfer_cont_options(self):
