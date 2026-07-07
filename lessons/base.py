@@ -34,9 +34,11 @@ class BaseLesson:
         """קרא בתחילת on_student_bid. מחזיר True אם הטיפול הושלם."""
         if self._awaiting_close:
             self._awaiting_close = False
-            self.app.auction_widget.add_bid(bid)         # S
-            self.app.auction_widget.add_bid('Pass')      # W
-            self.app.auction_widget.add_bid('Pass')      # N
+            self.app.auction_widget.add_bid(bid)     # S
+            self.app.auction_widget.add_bid('Pass')  # W
+            self.app.auction_widget.add_bid('Pass')  # N
+            if bid != 'Pass':
+                self.app.auction_widget.add_bid('Pass')  # E → 3 פסים
             self._finish(self._close_msg, self._close_ok, self._close_correct)
             return True
         return False

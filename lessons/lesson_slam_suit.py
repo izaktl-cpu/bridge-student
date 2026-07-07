@@ -82,7 +82,7 @@ class LessonSlamSuit(BaseLesson):
     def _opening_options(self):
         t = self._trump_sym
         op = self._opening
-        title = f'N פתח {op}. מה תכריז?'
+        title = 'מה תכריז?'
         if op == '1♥':
             # trump=♠ — S מכריז 1♠ ישירות
             return title, [(f'1{t}', f'5+ {t} — מראה שליט')]
@@ -110,6 +110,16 @@ class LessonSlamSuit(BaseLesson):
 
     def _handle_zero_free(self, bid):
         t = self._trump_sym
+
+        if not bid.endswith(t) and bid[0] not in ('1', 'P'):
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
+                disp = '1' + t
+                self._finish(f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}', ok=False)
+            return
+
         self.app.auction_widget.add_bid(bid)
 
         if bid.endswith(t):
@@ -214,39 +224,39 @@ class LessonSlamSuit(BaseLesson):
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self._do_blackwood()
             else:
-                if self._tries >= 1 and bid == getattr(self, '_last_wrong_bid', None):
-                    self.app.auction_widget.add_bid(bid, highlight=True)
-                    self._do_blackwood()
-                    return
                 self._tries += 1
-                if self._tries == 1:
-                    self._last_wrong_bid = bid
-                    self.app.set_feedback(f'נסה שנית. הנכון: {correct}.', ok=False)
+                if self._tries < 2:
+                    self.app.set_feedback('נסה שוב', ok=False)
                 else:
+                    disp = correct
                     self.app.auction_widget.add_bid(bid, highlight=True)
-                    self._do_blackwood()
+                    self._finish(f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}', ok=False)
             return
 
         if not bid.endswith(t):
-            self.app.set_feedback(f'הראה תמיכה ב-{t}.', ok=False)
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
+                correct = self._calc_raise_level()
+                disp = correct
+                self.app.auction_widget.add_bid(bid, highlight=True)
+                self._finish(
+                    f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}',
+                    ok=False)
             return
 
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)
             self._n_auto_decide(bid, ok=True)
         else:
-            if self._tries >= 1 and bid == getattr(self, '_last_wrong_bid', None):
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._n_auto_decide(bid, ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback('נסה שנית.', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
-                self.app.set_feedback(f'הנכון: {correct}.', ok=False)
+                disp = correct
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._n_auto_decide(bid, ok=False)
+                self._finish(f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}', ok=False)
 
     def _calc_raise_level(self):
         """רמת תמיכה נכונה לפי HCP+חלוקה של S."""
@@ -266,8 +276,7 @@ class LessonSlamSuit(BaseLesson):
         dp = self._dist_points()
         combined = self._hn + self._hs + dp
         t = self._trump_sym
-        correct_raise = self._calc_raise_level()
-        prefix = '' if ok else f'הנכון: {correct_raise}.\n'
+        prefix = ''
 
         self.app.auction_widget.add_bid('Pass')  # W
 
@@ -302,25 +311,21 @@ class LessonSlamSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
             dp_str = f'+{dp}' if dp else ''
-            self._finish(
-                f'{prefix}אין מספיק נקודות לסלם.\nעצרנו במשחק מלא.',
-                ok=ok)
+            self._finish('נכון\nאין מספיק נקודות\nעצרנו במשחק מלא', ok=ok)
         else:
             # combined < 26 — אין גם משחק
             self.app.auction_widget.add_bid('Pass')
             self.app.auction_widget.add_bid('Pass')
             self.app.auction_widget.add_bid('Pass')
             dp_str = f'+{dp}' if dp else ''
-            self._finish(
-                f'{prefix}אין מספיק נקודות.\nאין משחק מלא.',
-                ok=ok)
+            self._finish('נכון\nאין מספיק נקודות\nאין משחק מלא', ok=ok)
 
     # ── שלב rkcb_s: S עונה לשאלת N ──────────────────────────────────────────
 
     def _handle_rkcb_s(self, bid):
         valid_rkcb = {'5♣', '5♦', '5♥', '5♠'}
         if bid not in valid_rkcb:
-            self.app.set_feedback('הכרז מפתחות: 5♣/5♦/5♥/5♠.', ok=False)
+            self.app.set_feedback('הכרז מפתחות\n5♣/5♦/5♥/5♠', ok=False)
             return
 
         s_rkcb, _, _ = rkcb_response(self.hands['S'], self._trump)
@@ -328,14 +333,10 @@ class LessonSlamSuit(BaseLesson):
         is_correct = (bid == correct)
 
         if not is_correct:
-            if self._tries >= 1 and bid == getattr(self, '_last_wrong_bid', None):
-                pass  # התעקש — ממשיכים
-            else:
-                self._tries += 1
-                if self._tries == 1:
-                    self._last_wrong_bid = bid
-                    self.app.set_feedback('נסה שנית.', ok=False)
-                    return
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+                return
 
         self.app.auction_widget.add_bid(bid, highlight=True)
         self.app.auction_widget.add_bid('Pass')  # W
@@ -345,7 +346,7 @@ class LessonSlamSuit(BaseLesson):
         dp = self._dist_points()
         combined = self._hn + self._hs + dp
         prefix = getattr(self, '_raise_prefix', '')
-        wrong_note = '' if is_correct else f'הנכון: {correct}. '
+        wrong_note = '' if is_correct else f'יש לך {self._s_kc} מפתחות\nההכרזה הנכונה\n{correct}\n'
 
         if total_kc >= 4 and combined >= 33:
             contract6 = f'6{t}'
@@ -431,51 +432,37 @@ class LessonSlamSuit(BaseLesson):
                 total = self._hs + self._hn + dp
                 t = self._trump_sym
                 if correct == 'Pass':
-                    dp_part = f'+{dp}' if dp else ''
+                    disp = f'{self._n_rebid_lvl}{t}'
                     self._finish(
-                        f'{self._hn}+{self._hs}{dp_part}={total}. '
-                        f'אין מספיק נקודות. עוצרים ב-{self._n_rebid_lvl}{t}.',
+                        f'נכון\nיש {total} נקודות\nאין מספיק לסלם\nההכרזה הנכונה\n{disp}',
                         ok=True)
                 else:
                     contract = f'4{t}' if game_bid == 'Pass' else game_bid
-                    dp_part = f'+{dp}' if dp else ''
                     self._finish(
-                        f'אין מספיק נקודות לסלם.\nעצרנו במשחק מלא.\nחוזה: {contract}.',
+                        f'נכון\nיש {total} נקודות\nאין מספיק לסלם\nההכרזה הנכונה\n{contract}',
                         ok=True)
             else:
                 self._do_blackwood()
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 if bid == '4NT':
-                    self._do_blackwood()
+                    disp = correct
+                    self._finish(f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}', ok=False)
                 else:
                     self.app.auction_widget.add_bid('Pass')
                     self.app.auction_widget.add_bid('Pass')
                     self.app.auction_widget.add_bid('Pass')
                     if correct == '4NT':
-                        dp2 = self._dist_points()
-                        tot2 = self._hs + self._hn + dp2
                         self._finish(
-                            msg_slam_possible(self._hn, self._hs, dp2, tot2) + f'\nחוזה: {bid}.',
+                            f'יש לך {self._hs} נקודות\nיש סלם\nההכרזה הנכונה\n4NT',
                             ok=False)
                     else:
-                        self._finish(f'הנכון: {correct}.\nחוזה: {bid}.', ok=False)
-                return
-            self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback('נסה שנית.', ok=False)
-            else:
-                self.app.set_feedback(f'הנכון: {correct}.', ok=False)
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                if bid == '4NT':
-                    self._do_blackwood()
-                else:
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self._finish(f'הנכון: {correct}.\nחוזה: {bid}.', ok=False)
+                        disp = correct
+                        self._finish(f'יש לך {self._hs} נקודות\nההכרזה הנכונה\n{disp}', ok=False)
 
     def _calc_first(self):
         lvl = self._n_rebid_lvl
@@ -515,7 +502,7 @@ class LessonSlamSuit(BaseLesson):
                 singleton_card = next(
                     (c for c in self.hands['S'] if c[1] == self._shortage), None)
                 if singleton_card and singleton_card[0] not in ('A', 'K', 'Q', 'J'):
-                    dp = 3
+                    dp = 2
         dp += self._trump_bonus()
         return dp
 
@@ -574,7 +561,10 @@ class LessonSlamSuit(BaseLesson):
             else:
                 self._finish(msg_slam_stop(contract, total, combined), ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
+            self._tries += 1
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
+            else:
                 total = self._n_kc + self._s_kc
                 combined = self._hn + self._hs + self._dist_points()
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -582,27 +572,6 @@ class LessonSlamSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(msg_slam_wrong(bid, correct, total, combined), ok=False)
-                return
-            self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback('נסה שנית.', ok=False)
-            else:
-                total = self._n_kc + self._s_kc
-                combined = self._hn + self._hs + self._dist_points()
-                self.app.set_feedback(f'הנכון: {correct}. סה״כ {total} אסים.', ok=False)
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                if correct == '4NT':
-                    dp3 = self._dist_points()
-                    tot3 = self._hs + self._hn + dp3
-                    self._finish(
-                        msg_slam_possible(self._hn, self._hs, dp3, tot3) + f'\nחוזה: {bid}.',
-                        ok=False)
-                else:
-                    self._finish(f'הנכון: {correct}.\nחוזה: {bid}.', ok=False)
 
     def _calc_second(self):
         total = self._n_kc + self._s_kc

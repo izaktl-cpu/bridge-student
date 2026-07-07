@@ -1,5 +1,5 @@
 """
-אוברקול Acol — E/W מגיבים לפתיחת N/S.
+אוברקול Acol. E/W מגיבים לפתיחת N/S.
 מחזיר (bid, explanation).
 """
 
@@ -25,12 +25,12 @@ def get_overcall(hand, opening_bid, position='E'):
 
     # ── פס ──────────────────────────────────────────────────────────────────
     if h < 8:
-        return 'Pass', f'{h} נק׳ — פס'
+        return 'Pass', f'{h} נק׳. פס'
 
     # ── 1NT אוברקול (15-18 HCP, מאוזן, כבלה בצבע הפותח) ───────────────────
     if 15 <= h <= 18 and bal and open_level == 1:
         if open_suit and d.get(open_suit, 0) >= 2:  # יש כבלה
-            return '1NT', f'{h} נק׳, מאוזן — 1NT אוברקול'
+            return '1NT', f'{h} נק׳, מאוזן. 1NT אוברקול'
 
     # ── טייקאאוט דאבל (12+ HCP, שורטאז' בצבע הפותח, תמיכה בשאר) ───────────
     if h >= 12 and open_suit:
@@ -38,7 +38,7 @@ def get_overcall(hand, opening_bid, position='E'):
         other_fits = sum(1 for s in ['S', 'H', 'D', 'C']
                          if s != open_suit and d[s] >= 3)
         if shortage and other_fits >= 3:
-            return 'X', f'{h} נק׳, {d.get(open_suit,0)} קלפי {_S.get(open_suit,"?")} — טייקאאוט דאבל'
+            return 'X', f'{h} נק׳, {d.get(open_suit,0)} קלפי {_S.get(open_suit,"?")}. טייקאאוט דאבל'
 
     # ── אוברקול פשוט (5+ קלפים + 2 מכובדים) ────────────────────────────────
     for suit in ['S', 'H', 'D', 'C']:
@@ -55,19 +55,19 @@ def get_overcall(hand, opening_bid, position='E'):
             continue
         if _suit_quality(hand, suit) >= 2 and _suit_hcp(hand, suit) >= 4:
             return f'{level}{_S[suit]}', (
-                f'{h} נק׳, {length} קלפי {_S[suit]} — אוברקול {level}{_S[suit]}'
+                f'{h} נק׳, {length} קלפי {_S[suit]}. אוברקול {level}{_S[suit]}'
             )
 
-    return 'Pass', f'{h} נק׳ — פס (אין אוברקול מתאים)'
+    return 'Pass', f'{h} נק׳. פס (אין אוברקול מתאים)'
 
 
 def respond_overcall(hand, overcall_bid, opening_bid, competition_bid='Pass'):
     """
     תגובה לאוברקול של שותף.
-    competition_bid: הכרזת המתנגד (W) אחרי האוברקול — משפיע על תחרות.
+    competition_bid: הכרזת המתנגד (W) אחרי האוברקול. משפיע על תחרות.
     מחזיר (bid, explanation).
-    overcall_bid: e.g — '1♠', '2♦'
-    opening_bid:  e.g — '1♥', '1♣'
+    overcall_bid: e.g. '1♠', '2♦'
+    opening_bid:  e.g. '1♥', '1♣'
     """
     from engine.scoring import hcp, is_balanced, distribution, has_stopper, suit_len, dist_fit_pts
 
@@ -89,38 +89,38 @@ def respond_overcall(hand, overcall_bid, opening_bid, competition_bid='Pass'):
 
     # תחרות (מיגור רמה 1): המתנגד ברמה 2 → עולים עם 3+ תמיכה גם עם יד חלשה (3-6 נק')
     if support >= 3 and not is_minor_oc and oc_lvl == 1 and h <= 6 and comp_lvl >= 2:
-        return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — תחרות'
+        return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. תחרות'
 
     if support >= 3:
         if is_minor_oc:
             # מינור: נדרש 10+ נקודות להעלאה (28+ נק' משותפות למשחק)
             if h < 10:
-                return 'Pass', f'{h} נק׳, מינור — פס'
-            return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — תמיכה'
+                return 'Pass', f'{h} נק׳, מינור. פס'
+            return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. תמיכה'
         elif oc_lvl == 1:
             # מיגור רמה 1: 7-10→+1, 11-12→הזמנה, 13+ (כולל אורך) →משחק
             if h < 7:
-                return 'Pass', f'{h} נק׳ — פס'
+                return 'Pass', f'{h} נק׳. פס'
             if t >= 13:
-                return f'4{oc_sym}', f'{h} נק׳ ({t} סה״כ), {support} קלפי {oc_sym} — משחק'
+                return f'4{oc_sym}', f'{h} נק׳ ({t} סה״כ), {support} קלפי {oc_sym}. משחק'
             if h <= 10:
-                return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — תמיכה'
+                return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. תמיכה'
             else:
-                return f'{oc_lvl + 2}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — הזמנה'
+                return f'{oc_lvl + 2}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. הזמנה'
         else:
             # מיגור רמה 2+: נדרש 10+ (כבר ברמה 3 עם תמיכה)
             if h < 10:
-                return 'Pass', f'{h} נק׳ — פס'
+                return 'Pass', f'{h} נק׳. פס'
             if t >= 13:
-                return f'4{oc_sym}', f'{h} נק׳ ({t} סה״כ), {support} קלפי {oc_sym} — משחק'
+                return f'4{oc_sym}', f'{h} נק׳ ({t} סה״כ), {support} קלפי {oc_sym}. משחק'
             if h <= 12:
-                return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — הזמנה'
+                return f'{oc_lvl + 1}{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. הזמנה'
             else:
-                return f'4{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym} — משחק'
+                return f'4{oc_sym}', f'{h} נק׳, {support} קלפי {oc_sym}. משחק'
 
-    # ── פס — יד חלשה מדי לכל הכרזה אחרת ──────────────────────────────────────
+    # ── פס. יד חלשה מדי לכל הכרזה אחרת ──────────────────────────────────────
     if t < 8:
-        return 'Pass', f'{h} נק׳ — פס (יד חלשה)'
+        return 'Pass', f'{h} נק׳. פס (יד חלשה)'
 
     # ── צבע חדש 11+ נקודות ───────────────────────────────────────────────────
     if t >= 11:
@@ -129,25 +129,25 @@ def respond_overcall(hand, overcall_bid, opening_bid, competition_bid='Pass'):
                 continue
             if d[suit] < 5:
                 continue
-            if _suit_hcp(hand, suit) == 0:   # חייב לפחות J — לא מכריזים צבע ללא מכובדים
+            if _suit_hcp(hand, suit) == 0:   # חייב לפחות J. לא מכריזים צבע ללא מכובדים
                 continue
             sym  = _S[suit]
             rank = {'C': 1, 'D': 2, 'H': 3, 'S': 4}
             lvl  = oc_lvl if rank[suit] > rank[oc_suit] else oc_lvl + 1
             if lvl <= 4:
-                return f'{lvl}{sym}', f'{h} נק׳, {d[suit]} קלפי {sym} — צבע חדש'
+                return f'{lvl}{sym}', f'{h} נק׳, {d[suit]} קלפי {sym}. צבע חדש'
 
     # ── 1NT / 2NT ────────────────────────────────────────────────────────────
     if is_balanced(hand) and op_suit and has_stopper(hand, op_suit):
         nt_lvl = oc_lvl if oc_lvl == 1 else oc_lvl
         min_nt = 8 if oc_lvl == 1 else 11
         if min_nt <= t <= 11:
-            return f'{nt_lvl}NT', f'{h} נק׳, מאוזן, עצור — {nt_lvl}NT'
+            return f'{nt_lvl}NT', f'{h} נק׳, מאוזן, עצור. {nt_lvl}NT'
         if t >= 12:
-            return f'{nt_lvl + 1}NT', f'{h} נק׳, מאוזן, עצור — {nt_lvl + 1}NT'
+            return f'{nt_lvl + 1}NT', f'{h} נק׳, מאוזן, עצור. {nt_lvl + 1}NT'
 
     # ── פס ───────────────────────────────────────────────────────────────────
-    return 'Pass', f'{h} נק׳ — פס'
+    return 'Pass', f'{h} נק׳. פס'
 
 
 def _suit_hcp(hand, suit):
@@ -159,9 +159,9 @@ def _suit_hcp(hand, suit):
 def _suit_quality(hand, suit):
     """
     ספור יחידות כבוד בצבע:
-      A, K, Q — כל אחד 1 יחידה
-      JT       — J וגם T בצבע = 1 יחידה
-      T98      — T וגם 9 וגם 8 בצבע = 1 יחידה
+      A, K, Q. כל אחד 1 יחידה
+      JT      . J וגם T בצבע = 1 יחידה
+      T98     . T וגם 9 וגם 8 בצבע = 1 יחידה
     """
     ranks = {c[0] for c in hand if c[1] == suit}
     count = sum(1 for r in ('A', 'K', 'Q') if r in ranks)

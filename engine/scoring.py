@@ -25,14 +25,15 @@ def total_pts(hand):
     return hcp(hand) + length_pts
 
 def has_stopper(hand, suit):
-    """A / Kx / QJx / Jxxx"""
+    """A / Kx / QJx / QT9 / Jxxx"""
     cards = [c for c in hand if card_suit(c) == suit]
     ranks = [card_rank(c) for c in cards]
     n = len(ranks)
-    if 'A' in ranks:                              return True  # A
-    if 'K' in ranks and n >= 2:                  return True  # Kx
-    if 'Q' in ranks and 'J' in ranks and n >= 3: return True  # QJx
-    if 'J' in ranks and n >= 4:                  return True  # Jxxx
+    if 'A' in ranks:                                       return True  # A
+    if 'K' in ranks and n >= 2:                           return True  # Kx
+    if 'Q' in ranks and 'J' in ranks and n >= 3:         return True  # QJx
+    if 'Q' in ranks and 'T' in ranks and '9' in ranks:   return True  # QT9
+    if 'J' in ranks and n >= 4:                          return True  # Jxxx
     return False
 
 
@@ -99,10 +100,11 @@ def sure_tricks(hand):
     return total
 
 
-def dist_fit_pts(hand, trump=None):
+def dist_fit_pts(hand, trump=None, opener=False):
     """נקודות חלוקה עם התאמה — חוסר + אורך.
-    חוסר (בצבעים שאינם קוז): ווייד=3, סינגלטון=2 — שניה — לא מוסיפים.
-    אורך: כל קלף מעל 4 בכל צבע = +1.
+    חוסר (בצבעים שאינם קוז): ווייד=3, סינגלטון לא-מכובד=2 — לשני הצדדים.
+    אורך: רק בצבע הקוז עצמו, כל קלף מעל 5 = +1.
+    אצל הפותח (opener=True): נקודות אורך רק אם יש 2+ מכובדים בסדרת הקוז.
     trump: צבע הקוז — לא סופרים חוסר בצבע הקוז עצמו."""
     d = distribution(hand)
     pts = 0
@@ -117,6 +119,8 @@ def dist_fit_pts(hand, trump=None):
                 pts += 3
             elif d[suit] == 1 and not has_honor:
                 pts += 2
-        # נקודות אורך — קלף 6 ומעלה = +1 לכל קלף
-        pts += max(0, d[suit] - 5)
+    if trump:
+        trump_honor_count = sum(1 for r in suit_cards[trump] if r in honors)
+        if not opener or trump_honor_count >= 2:
+            pts += max(0, d[trump] - 5)
     return pts

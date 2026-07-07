@@ -36,24 +36,39 @@ def msg_slam_possible(hn, hs, dp, total):
     dp_part = f'+{dp}' if dp else ''
     return (
         f'{hn}+{hs}{dp_part}={total}\n'
-        f'יש סלם!\n'
-        f'שאל אסים.'
+        f'יש סלם\n'
+        f'שאל אסים'
     )
+
+
+def tricks(n):
+    """יחיד/רבים ללקיחות."""
+    return 'לקיחה אחת' if n == 1 else f'{n} לקיחות'
+
+
+def high_tricks(n):
+    """יחיד/רבים ללקיחות גבוהות."""
+    return 'לקיחה גבוהה אחת' if n == 1 else f'{n} לקיחות גבוהות'
+
+
+def cards_of(n, sym):
+    """יחיד/רבים לקלפים בסדרה."""
+    return f'קלף {sym} אחד' if n == 1 else f'{n} קלפי {sym}'
 
 
 def msg_slam_correct(contract, aces, pts):
     """סלם הצליח."""
-    return f'נכון סלם!\nיש {aces} אסים\n{pts} נקודות\nחוזה: {contract}.'
+    return f'נכון\nיש {aces} מפתחות\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
 
 
 def msg_slam_stop(contract, aces, pts):
     """עצרנו לפני סלם — נכון."""
-    return f'נכון! עצרנו.\nיש {aces} אסים\n{pts} נקודות\nחוזה: {contract}.'
+    return f'נכון\nיש {aces} מפתחות בלבד\n{pts} נקודות\nההכרזה הנכונה\n{contract}'
 
 
 def msg_slam_wrong(bid, correct, aces, pts):
     """הכרזת סלם שגויה."""
-    return f'הנכון: {correct}.\nיש {aces} אסים\n{pts} נקודות\nחוזה: {bid}.'
+    return f'יש {aces} מפתחות\n{pts} נקודות\nההכרזה הנכונה\n{correct}'
 
 
 def msg_no_slam(pts, contract):
@@ -68,6 +83,13 @@ def msg_calc_game(contract):
         f'אין משחק מלא.\n'
         f'חוזה: {contract}.'
     )
+
+
+# ── תבניות שורות טבלה ────────────────────────────────────────────────────────
+
+def row_support(bid, pts, cards, sym=''):
+    """שורת תמיכה: pts נקודות, +cards קלפים"""
+    return f"נקודות {pts}, +{cards} קלפים"
 
 
 # ── כללי ──────────────────────────────────────────────────────────────────────

@@ -4,8 +4,6 @@ from engine.overcall import get_overcall, respond_overcall
 from engine.opening import opening_bid as _opening_bid
 from engine.scoring import hcp, distribution
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong
-
 _S = SUIT_SYMBOLS
 _SYM_TO_SUIT = {'♣': 'C', '♦': 'D', '♥': 'H', '♠': 'S'}
 _RANK = {'♣': 1, '♦': 2, '♥': 3, '♠': 4}
@@ -114,6 +112,14 @@ class LessonOvercallResponse(BaseLesson):
     """שיעור 12 (גרסה ב): תלמיד עונה לאוברקול שותפו. עד 4 סיבובים"""
 
     TITLE = 'שיעור 12. תגובה לאוברקול'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonOvercallResponse
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
 
     def start(self):
         if not self._replaying:
@@ -174,7 +180,7 @@ class LessonOvercallResponse(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'✓ נכון! {bid}\n{explanation}.', ok=True)
+                self._finish(f'{self._next_opener()}\n{explanation}\nההכרזה הנכונה\n{bid}', ok=True)
                 return
 
             # N מכריז ריבאד אוטומטי
@@ -194,7 +200,7 @@ class LessonOvercallResponse(BaseLesson):
                     self.app.auction_widget.add_bid('Pass')  # W
                     self.app.auction_widget.add_bid('Pass')  # N
                 self._finish(
-                    f'✓ נכון! {bid}\n{explanation}.\nשותף: {nr_bid}. {nr_why}.',
+                    f'{self._next_opener()}\n{explanation}\nשותף הכריז {nr_bid}. {nr_why}\nההכרזה הנכונה\n{bid}',
                     ok=True)
                 return
 
@@ -211,24 +217,17 @@ class LessonOvercallResponse(BaseLesson):
             )
 
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')  # W
-                self.app.auction_widget.add_bid('Pass')  # N
-                self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(f'בחרת {bid}. הנכון: {correct}.', ok=False)
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback('נסה שוב.', ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
                 self._finish(
-                    f'✗ בחרת {bid}.\nהנכון: {correct}. {explanation}',
+                    f'{explanation}\nההכרזה הנכונה\n{correct}',
                     ok=False, correct_answer=correct)
 
     def _finish(self, message, ok, correct_answer=''):

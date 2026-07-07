@@ -6,7 +6,6 @@ from engine.negative_double import (can_negative_double, s_response,
 from engine.opening import opening_bid as _opening_bid
 from engine.scoring import hcp, distribution, has_stopper
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_chose_wrong_why
 
 _S = SUIT_SYMBOLS
 _SYM_MAP = {'♣': 'C', '♦': 'D', '♥': 'H', '♠': 'S'}
@@ -25,17 +24,32 @@ def _suit_sym(suit):
 
 
 def _e_overcall(e_hand, n_suit):
-    """מזהה צבע האוברקול של E (המיגור היחיד עם 5+ קלפים)."""
+    """מזהה צבע האוברקול של E (הסדרה היחידה עם 5+ קלפים, לא צבע N)."""
     d = distribution(e_hand)
-    cands = [m for m in ['H', 'S'] if d[m] >= 5 and m != n_suit]
+    if n_suit in ('C', 'D'):
+        cands = [m for m in ['H', 'S'] if d[m] >= 5 and m != n_suit]
+    else:
+        cands = [su for su in ['S', 'H', 'D', 'C'] if su != n_suit and d[su] >= 5]
     return cands[0] if len(cands) == 1 else None
 
 
 class LessonNegativeDouble(BaseLesson):
     TITLE = 'שיעור 14. נגטיב דאבל'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonNegativeDouble
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _wrong_message(self, correct):
+        return f'{self._expl}\nההכרזה הנכונה\n{correct}'
 
     def start(self):
         self._awaiting_close = False
+        self._agreed_suit    = None
         if not self._replaying:
             self._phase = getattr(self, '_next_phase', 1)
             self._next_phase = 2 if self._phase == 1 else 1
@@ -62,9 +76,9 @@ class LessonNegativeDouble(BaseLesson):
         self._n_bid  = n_bid
         self._n_suit = _bid_suit(n_bid)
         self._e_suit = _e_overcall(self.hands['E'], self._n_suit)
-        self._e_level = 1
+        self._e_level = 1 if _RANK[self._e_suit] > _RANK[self._n_suit] else 2
         e_sym = _suit_sym(self._e_suit)
-        self._e_bid = f'1{e_sym}'
+        self._e_bid = f'{self._e_level}{e_sym}'
 
         if self._phase == 1:
             self._correct, self._expl = s_response(
@@ -128,7 +142,7 @@ class LessonNegativeDouble(BaseLesson):
                 # S פס — W ו-N פסים אוטומטית, אין צורך בקליק נוסף
                 self.app.auction_widget.add_bid('Pass')   # W
                 self.app.auction_widget.add_bid('Pass')   # N
-                self._finish(f'נכון. פס\n{self._expl}', ok=True)
+                self._finish(f'{self._next_opener()}\n{self._expl}\nההכרזה הנכונה\nPass', ok=True)
                 return
             if bid == 'X':
                 n_bid, n_expl = opener_rebid(
@@ -137,13 +151,13 @@ class LessonNegativeDouble(BaseLesson):
                 self.app.auction_widget.add_bid(n_bid)    # N
                 self.app.auction_widget.add_bid('Pass')   # E
                 self._start_closing(
-                    f'נכון. X\n{self._expl}\nN מכריז {n_bid}: {n_expl}',
+                    f'{self._next_opener()}\n{self._expl}\nN מכריז {n_bid}. {n_expl}\nההכרזה הנכונה\nX',
                     ok=True)
             elif _bid_suit(bid) is None:  # 1NT וכדומה
                 self.app.auction_widget.add_bid('Pass')   # W
                 self.app.auction_widget.add_bid('Pass')   # N
                 self.app.auction_widget.add_bid('Pass')   # E
-                self._finish(f'נכון. {bid}\n{self._expl}', ok=True)
+                self._finish(f'{self._next_opener()}\n{self._expl}\nההכרזה הנכונה\n{bid}', ok=True)
             else:
                 s_suit = _bid_suit(bid)
                 is_cue = (s_suit == self._e_suit)
@@ -151,43 +165,28 @@ class LessonNegativeDouble(BaseLesson):
                     n_bid, n_expl = opener_after_cue(
                         self.hands['N'], self._n_suit, self._e_suit)
                 else:
-                    n_bid, n_expl = opener_after_natural(self.hands['N'], self._n_suit, s_suit)
+                    n_bid, n_expl = opener_after_natural(self.hands['N'], self._n_suit, s_suit, self._e_suit)
+                    # שמור אמפה אם N תמך
+                    d_n = distribution(self.hands['N'])
+                    if d_n.get(s_suit, 0) >= 3:
+                        self._agreed_suit = s_suit
+                    else:
+                        self._agreed_suit = None
                 self.app.auction_widget.add_bid('Pass')   # W
                 self.app.auction_widget.add_bid(n_bid)    # N
                 self.app.auction_widget.add_bid('Pass')   # E
                 self._start_closing(
-                    f'נכון. {bid}\n{self._expl}\nN מכריז {n_bid}: {n_expl}',
+                    f'{self._next_opener()}\n{self._expl}\nN מכריז {n_bid}. {n_expl}\nההכרזה הנכונה\n{bid}',
                     ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._close_wrong_phase1(bid, msg_chose_wrong_why(bid, correct, self._expl))
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(f'{self._expl}\nנסה שנית.', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._close_wrong_phase1(
-                    bid,
-                    msg_chose_wrong_why(bid, correct, self._expl),
-                    correct_answer=correct)
-
-    def _close_wrong_phase1(self, bid, msg, correct_answer=''):
-        """סגירת שלב 1 לאחר הכרזה שגויה — X תמיד מקבל ריבאד N."""
-        if bid == 'X':
-            n_bid, n_expl = opener_rebid(
-                self.hands['N'], self._n_suit, self._e_suit, self._e_level)
-            self.app.auction_widget.add_bid('Pass')   # W
-            self.app.auction_widget.add_bid(n_bid)    # N
-            self.app.auction_widget.add_bid('Pass')   # E
-            self._start_closing(msg, ok=False, correct_answer=correct_answer)
-        else:
-            self.app.auction_widget.add_bid('Pass')   # W
-            self.app.auction_widget.add_bid('Pass')   # N
-            self.app.auction_widget.add_bid('Pass')   # E
-            self._finish(msg, ok=False, correct_answer=correct_answer)
+                self._finish(
+                    self._wrong_message(correct),
+                    ok=False, correct_answer=correct)
 
     # ── שלב 2: N מכריז ריבאד ──────────────────────────────────────────────
 
@@ -240,31 +239,73 @@ class LessonNegativeDouble(BaseLesson):
             self.app.auction_widget.add_bid('Pass')   # E
             self.app.auction_widget.add_bid('Pass')   # S
             self.app.auction_widget.add_bid('Pass')   # W
-            self._finish(f'נכון. {bid}\n{self._expl}', ok=True)
+            self._finish(f'{self._next_opener()}\n{self._expl}\nההכרזה הנכונה\n{bid}', ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')   # E
-                self.app.auction_widget.add_bid('Pass')   # S
-                self.app.auction_widget.add_bid('Pass')   # W
-                self._finish(msg_chose_wrong_why(bid, correct, self._expl), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(f'{self._expl}\nנסה שנית.', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')   # E
                 self.app.auction_widget.add_bid('Pass')   # S
                 self.app.auction_widget.add_bid('Pass')   # W
                 self._finish(
-                    msg_chose_wrong_why(bid, correct, self._expl),
+                    self._wrong_message(correct),
                     ok=False, correct_answer=correct)
 
     # ── ניתוב ──────────────────────────────────────────────────────────────
 
     def on_student_bid(self, bid):
+        # קיו ביט חוזר בשלב הסגירה — N מגיב שוב, S מכריז שוב
+        if self._awaiting_close and self._phase == 1:
+            s_suit = _bid_suit(bid)
+            e_suit = getattr(self, '_e_suit', None)
+            n_hand = self.hands['N']
+            if s_suit and s_suit == e_suit:
+                # S חוזר בקיו → N מגיב שוב
+                self._awaiting_close = False
+                agreed = getattr(self, '_agreed_suit', None)
+                if agreed and not has_stopper(n_hand, e_suit):
+                    # יש אמפה מוכרזת, אין עוצר → משחק באמפה
+                    lvl = 4 if agreed in ('H', 'S') else 5
+                    n_bid = f'{lvl}{_suit_sym(agreed)}'
+                    n_expl = f'אין עוצר, משחק ב{_suit_sym(agreed)}'
+                else:
+                    n_bid, n_expl = opener_after_cue(n_hand, self._n_suit, e_suit)
+                self.app.auction_widget.add_bid(bid)     # S
+                self.app.auction_widget.add_bid('Pass')  # W
+                self.app.auction_widget.add_bid(n_bid)   # N
+                self.app.auction_widget.add_bid('Pass')  # E
+                self._start_closing(
+                    f'{self._close_msg}\nN מכריז {n_bid}. {n_expl}',
+                    self._close_ok)
+                return
+            elif s_suit and s_suit != e_suit:
+                # S מכריז סדרה — N מרים למשחק רק עם 18+ נק'
+                self._awaiting_close = False
+                d = distribution(n_hand)
+                h = hcp(n_hand)
+                sym = _suit_sym(s_suit)
+                if d[s_suit] >= 4 and h >= 18:
+                    lvl = 4 if s_suit in ('H', 'S') else 5
+                    n_bid = f'{lvl}{sym}'
+                    n_expl = f'{h} נק׳, {d[s_suit]} קלפי {sym}, משחק'
+                elif d[s_suit] >= 4 and h >= 15:
+                    n_bid = f'3{sym}'
+                    n_expl = f'{h} נק׳, {d[s_suit]} קלפי {sym}, הזמנה'
+                else:
+                    n_bid = 'Pass'
+                    n_expl = f'{h} נק׳, מינימום, פס'
+                self.app.auction_widget.add_bid(bid)     # S
+                self.app.auction_widget.add_bid('Pass')  # W
+                self.app.auction_widget.add_bid(n_bid)   # N
+                self.app.auction_widget.add_bid('Pass')  # E
+                self.app.auction_widget.add_bid('Pass')  # S
+                self.app.auction_widget.add_bid('Pass')  # W
+                self._finish(
+                    f'{self._close_msg}\nN מכריז {n_bid}. {n_expl}',
+                    self._close_ok)
+                return
         if self._handle_close(bid):
             return
         if self._phase == 1:

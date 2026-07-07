@@ -3,7 +3,6 @@ from engine.deal_constraints import deal_robot_opens_1nt
 from engine.response import respond_1nt
 from engine.rebid import opener_rebid
 from engine.scoring import hcp
-from utils.messages import msg_try_again_pts
 
 _BIDS = ['Pass', '2NT', '3NT']
 
@@ -13,6 +12,25 @@ class LessonRobotOpens1NT(BaseLesson):
 
     TITLE = 'שיעור 2. מענה ל-1NT'
     _deal_count = 0
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonRobotOpens1NT
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _correct_message(self, final):
+        h = hcp(self.hands['S'])
+        return (f'{self._next_opener()}\n'
+                f'יש לך {h} נקודות גבוהות\n'
+                f'ההכרזה הנכונה\n'
+                f'{final}')
+
+    def _wrong_message(self, correct):
+        h = hcp(self.hands['S'])
+        return f'יש לך {h} נקודות גבוהות\nההכרזה הנכונה\n{correct}'
 
     def start(self):
         if not self._replaying:
@@ -55,68 +73,42 @@ class LessonRobotOpens1NT(BaseLesson):
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
             self.app.auction_widget.add_bid('Pass')                # W
-            self._after_correct_response(bid, why)
+            self._after_correct_response(bid, self._correct_message(bid), ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')                # W
-                self._after_correct_response(bid, '')
+            if self._tries >= 1:
+                self.app.auction_widget.add_bid(bid, highlight=True)
+                self.app.auction_widget.add_bid('Pass')
+                self.app.auction_widget.add_bid('Pass')
+                self.app.auction_widget.add_bid('Pass')
+                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
                 return
             self._tries += 1
-            h = hcp(self.hands['S'])
-            if self._tries < 2:
-                self._last_wrong_bid = bid
-                self.app.bidding_box.reset()
-                self.app.bidding_box.set_last_bid('1NT')
-                self.app.set_feedback(msg_try_again_pts(h), ok=False)
-            else:
-                explanation = self._explain_wrong(bid, correct)
-                self.app.set_feedback(f'הנכון: {correct}.\n{explanation}', ok=False)
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')                # W
-                self._after_correct_response(bid, f'הנכון: {correct}.')
+            self._last_wrong_bid = bid
+            self.app.bidding_box.reset()
+            self.app.bidding_box.set_last_bid('1NT')
+            self.app.set_feedback('נסה שוב', ok=False)
 
-    def _after_correct_response(self, bid, why):
-        ok = not why.startswith('הנכון')
+    def _after_correct_response(self, bid, message, ok=True):
         if bid == 'Pass':
-            self.app.auction_widget.add_bid('Pass')   # N
-            self.app.auction_widget.add_bid('Pass')   # E
-            self._finish(f'{"נכון" if ok else why}\nחוזה סופי: 1NT.', ok=ok)
+            self.app.auction_widget.add_bid('Pass')
+            self.app.auction_widget.add_bid('Pass')
+            self._finish(message, ok=ok)
         elif bid == '3NT':
-            self.app.auction_widget.add_bid('Pass')   # N
-            self.app.auction_widget.add_bid('Pass')   # E
-            self._finish(f'{"נכון" if ok else why}\nחוזה סופי: 3NT.', ok=ok)
+            self.app.auction_widget.add_bid('Pass')
+            self.app.auction_widget.add_bid('Pass')
+            self._finish(message, ok=ok)
         elif bid == '2NT':
-            north_bid, n_why = opener_rebid(self.hands['N'], '1NT', '2NT')
-            self.app.auction_widget.add_bid(north_bid)  # N
-            self.app.auction_widget.add_bid('Pass')      # E
-            final = '2NT' if north_bid == 'Pass' else north_bid
-            msg = f'{"נכון" if ok else why}\nמחשב: {north_bid}. {n_why}.\nחוזה סופי: {final}.'
+            north_bid, _ = opener_rebid(self.hands['N'], '1NT', '2NT')
+            self.app.auction_widget.add_bid(north_bid)
+            self.app.auction_widget.add_bid('Pass')
             if north_bid != 'Pass':
-                self._start_closing(msg, ok=ok)
+                self._start_closing(message, ok=ok)
             else:
-                self._finish(msg, ok=ok)
+                self._finish(message, ok=ok)
         else:
-            # הכרזה לא צפויה. המחשב פס
-            self.app.auction_widget.add_bid('Pass')   # N
-            self.app.auction_widget.add_bid('Pass')   # E
-            self._finish(f'{why}\nחוזה סופי: {bid}.', ok=False)
-
-    def _explain_wrong(self, bid, correct):
-        h = hcp(self.hands['S'])
-        if bid == 'Pass' and correct == '2NT':
-            return f'יש לך {h} נקודות גבוהות. עם 8-9 נקודות, מזמינים לחוזה 3NT על ידי הכרזת 2NT.'
-        if bid == 'Pass' and correct == '3NT':
-            return f'יש לך {h} נקודות גבוהות. עם 10 נקודות ומעלה, מכריזים 3NT ישירות.'
-        if bid == '2NT' and correct == 'Pass':
-            return f'יש לך {h} נקודות גבוהות. עם פחות מ-8 נקודות, אין מספיק למשחק. מכריזים פס.'
-        if bid == '2NT' and correct == '3NT':
-            return f'יש לך {h} נקודות גבוהות. עם 10 נקודות ומעלה, מכריזים 3NT ישירות ולא מזמינים.'
-        if bid == '3NT' and correct == 'Pass':
-            return f'יש לך {h} נקודות גבוהות. 3NT דורש לפחות 10 נקודות. עם פחות מ-8, מכריזים פס.'
-        if bid == '3NT' and correct == '2NT':
-            return f'יש לך {h} נקודות גבוהות. עם 8-9 נקודות, מזמינים ב-2NT ולא קופצים ישר ל-3NT.'
-        return f'יש לך {h} נקודות גבוהות.'
+            self.app.auction_widget.add_bid('Pass')
+            self.app.auction_widget.add_bid('Pass')
+            self._finish(message, ok=False)
 
     # ── שלב 2: חזרה אחרי 2NT (לא בשימוש בבסיסי. N מכריז לבד) ───────────
 

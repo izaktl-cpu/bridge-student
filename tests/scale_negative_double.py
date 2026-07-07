@@ -95,6 +95,9 @@ def _expected_s(s_hand, n_suit, e_suit, e_level=1):
                 return 'major', f'{lvl}{_S[major]}'
 
     if h >= 13:
+        for major in um:
+            if d[major] >= 4:
+                return 'X', 'X'
         if has_stopper(s_hand, e_suit):
             return '3NT', '3NT'
         return 'cue', f'{e_level + 1}{_S[e_suit]}'
@@ -102,14 +105,24 @@ def _expected_s(s_hand, n_suit, e_suit, e_level=1):
     if h >= 11 and has_stopper(s_hand, e_suit):
         return '2NT', '2NT'
 
+    if d[n_suit] >= 4 and h >= 6:
+        if h >= 11:
+            return 'support', f'3{_S[n_suit]}'
+        return 'support', f'2{_S[n_suit]}'
+
     for minor in mn:
-        if d[minor] >= 5 and h >= 11:
+        if d[minor] >= 6 and h >= 11:
             lvl = _min_lvl(minor, e_suit, e_level)
             return 'minor', f'{lvl}{_S[minor]}'
 
     for major in um:
-        if d[major] >= 4 and h >= 8:
+        if d[major] >= 4 and h >= 7:
             return 'X', 'X'
+
+    for minor in mn:
+        if d[minor] >= 5 and h >= 11:
+            lvl = _min_lvl(minor, e_suit, e_level)
+            return 'minor', f'{lvl}{_S[minor]}'
 
     if h >= 7 and has_stopper(s_hand, e_suit):
         return '1NT', '1NT'
@@ -120,16 +133,27 @@ def _expected_s(s_hand, n_suit, e_suit, e_level=1):
 # ── ציפייה תיאורטית לריבאד N אחרי X ─────────────────────────────────────────
 
 def _expected_rebid(n_hand, n_suit, e_suit, e_level=1):
-    h = hcp(n_hand)
-    d = distribution(n_hand)
+    from engine.scoring import is_balanced
+    h   = hcp(n_hand)
+    d   = distribution(n_hand)
+    bal = is_balanced(n_hand)
     um = next((m for m in ['S', 'H'] if m not in (n_suit, e_suit)), None)
     mn = next((m for m in ['D', 'C'] if m not in (n_suit, e_suit)), None)
 
+    # תמיכה (3+) בסדרה שהראה ה-X — קודמת לכל השאר
     if um and d[um] >= 3:
-        lvl = _min_lvl(um, e_suit, e_level)
+        min_lvl = _min_lvl(um, e_suit, e_level)
+        lvl = min_lvl if h <= 14 else min_lvl + 1
         return f'{lvl}{_S[um]}'
 
-    if h >= 12 and has_stopper(n_hand, e_suit):
+    # ללא תמיכה: קיו ביט (18-21, לא מאוזן-18-19)
+    if 18 <= h <= 21 and not (bal and 18 <= h <= 19):
+        return f'{e_level + 1}{_S[e_suit]}'
+
+    if 18 <= h <= 19 and bal and has_stopper(n_hand, e_suit):
+        return f'{e_level + 1}NT'
+
+    if 12 <= h <= 14 and bal and has_stopper(n_hand, e_suit):
         return f'{e_level}NT'
 
     if mn and d[mn] >= 4:
@@ -137,6 +161,8 @@ def _expected_rebid(n_hand, n_suit, e_suit, e_level=1):
         return f'{lvl}{_S[mn]}'
 
     lvl = _min_lvl(n_suit, e_suit, e_level)
+    if h >= 15:
+        lvl = max(lvl, 3)
     return f'{lvl}{_S[n_suit]}'
 
 
@@ -146,27 +172,58 @@ def _expected_cue(n_hand, n_suit, e_suit):
     d = distribution(n_hand)
     um = next((m for m in ['S', 'H'] if m not in (n_suit, e_suit)), None)
 
+    if has_stopper(n_hand, e_suit):
+        return '3NT'
     if um and d[um] >= 4:
         lvl = _min_lvl(um, e_suit, 2)
         return f'{lvl}{_S[um]}'
-    if has_stopper(n_hand, e_suit):
-        return '3NT'
     return f'3{_S[n_suit]}'
 
 
 # ── ציפייה תיאורטית לריבאד N אחרי מיגור טבעי של S ──────────────────────────
 
-def _expected_natural(n_hand, s_suit):
+def _expected_natural(n_hand, s_suit, n_suit=None, e_suit=None):
     h = hcp(n_hand)
     d = distribution(n_hand)
     sym = _S[s_suit]
 
+    # שורה 1: תמיכה 3+
     if d[s_suit] >= 3:
-        if h >= 16:
-            return f'4{sym}'
-        if h >= 14:
-            return f'3{sym}'
-        return 'Pass'
+        if s_suit == n_suit:
+            if h >= 15 and e_suit and has_stopper(n_hand, e_suit):
+                return '3NT'
+            if h >= 15:
+                return f'5{sym}'
+            return 'Pass'
+        s_level = _min_lvl(s_suit, e_suit, 1) if e_suit else 1
+        min_raise = s_level + 1
+        if h >= 18:
+            return f'{max(min_raise, 4)}{sym}'
+        if h >= 15:
+            return f'{max(min_raise, 3)}{sym}'
+        return f'{min_raise}{sym}'
+
+    # שורה 2: עוצר ב-E → 2NT
+    if e_suit and has_stopper(n_hand, e_suit):
+        return '2NT'
+
+    # שורה 3: סדרה שנייה 4+ (לא n_suit, לא s_suit, לא e_suit)
+    excluded = {n_suit, s_suit}
+    if e_suit:
+        excluded.add(e_suit)
+    for suit in ['C', 'D', 'H', 'S']:
+        if suit not in excluded and d[suit] >= 4:
+            is_reverse = n_suit and _RANK[suit] > _RANK[n_suit]
+            if is_reverse and h < 18:
+                continue
+            return f'2{_S[suit]}'
+
+    # שורה 4: ריבאד בסדרת N עצמה 5+
+    if n_suit and d[n_suit] >= 5:
+        lvl = 3 if h >= 15 else 2
+        return f'{lvl}{_S[n_suit]}'
+
+    # שורה 5: פס
     return 'Pass'
 
 
@@ -264,8 +321,8 @@ def check_after_natural(hands, n_suit, e_suit, s_bid, idx, errors):
     if not s_suit:
         return '—'
 
-    actual, _ = opener_after_natural(n, s_suit)
-    exp       = _expected_natural(n, s_suit)
+    actual, _ = opener_after_natural(n, n_suit, s_suit, e_suit)
+    exp       = _expected_natural(n, s_suit, n_suit, e_suit)
 
     if actual != exp:
         _err(errors,
@@ -307,7 +364,7 @@ def scale(n=2000, verbose=False):
             rb = check_after_cue(hands, n_suit, e_suit, i, errors)
             n_after_cue[rb] += 1
 
-        elif cat in ('major', 'minor'):
+        elif cat in ('major', 'minor', 'support'):
             rb = check_after_natural(hands, n_suit, e_suit, s_bid, i, errors)
             n_after_nat[rb] += 1
 

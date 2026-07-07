@@ -58,6 +58,23 @@ def _rebid_after_1nt(h, response, hand=None):
                 return '3NT', '16 נקודות עם סדרה טובה. מכריזים משחק'
             return 'Pass', '16 נקודות ללא סדרה טובה. נשארים ב-2NT'
         return '3NT', '17 נקודות. מקסימום 1NT, מכריזים משחק'
+    if response == '5NT':  # כמותי — הזמנה לסלם גדול
+        if h <= 15:
+            return '6NT', '15 נקודות. מינימום 1NT, נשארים בסלם קטן'
+        if h == 16:
+            if hand and _has_good_5card_suit(hand):
+                return '7NT', '16 נקודות עם סדרה טובה. מקבלים הזמנה לסלם גדול'
+            return '6NT', '16 נקודות ללא סדרה טובה. נשארים בסלם קטן'
+        return '7NT', '17 נקודות. מקסימום 1NT, סלם גדול'
+    if response in ('3♥', '3♠'):  # הזמנה בשליט מוסכם (אחרי סטיימן)
+        suit = response[1:]
+        if h <= 15:
+            return 'Pass', f'{h} נקודות. מינימום, נשארים ב-{response}'
+        if h == 16:
+            if hand and _has_good_5card_suit(hand):
+                return f'4{suit}', f'16 נקודות עם סדרה טובה. מקבלים הזמנה'
+            return 'Pass', f'16 נקודות ללא סדרה טובה. נשארים ב-{response}'
+        return f'4{suit}', f'{h} נקודות. מקסימום, מקבלים הזמנה'
     if response == 'Pass':
         return 'Pass', 'השותף פסם'
     if response == '3NT':
@@ -148,9 +165,9 @@ def opener_bid_2c_round3(hand, n_second, s_second):
             return f'4{_S[s_suit]}', f'תמיכה ב-{_S[s_suit]}. משחק מלא'
         n_sym = n_second[1]
         if s_second in ('2NT', '3♦', '3♣'):
-            return '3NT', f'N הראה 5 קלפי {n_sym}.\nS ללא התאמה.\n3♣ שקר. N מגלם 3NT.\nהיד החזקה משחקת'
+            return '3NT', f'ללא התאמה ב-{n_sym}. N מגלם 3NT'
         s_sym = s_second[1] if len(s_second) == 2 else '?'
-        return '3NT', f'N הראה 5 קלפי {n_sym}.\nS הראה 5 קלפי {s_sym}.\nאין התאמה'
+        return '3NT', 'אין התאמה. 3NT'
 
     return 'Pass', 'חוזה סופי'
 
@@ -214,7 +231,7 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
             if h >= 17 and all_stopped:
                 return '2NT', 'יד בינונית עם עוצרים. מזמין לחוזה 3NT'
             return 'Pass', 'יד מינימום. מכריזים פס'
-        dp = dist_fit_pts(hand, trump=open_suit)
+        dp = dist_fit_pts(hand, trump=open_suit, opener=True)
         tot = h + dp
         dp_str = f'\nיש {dp} נקודות חוסר\nסה״כ {tot}' if dp > 0 else ''
         if tot >= 18:

@@ -3,7 +3,7 @@ from lessons.base import BaseLesson
 from engine.deal_constraints import deal_student_weak2
 from engine.scoring import sure_tricks, suit_len, has_stopper, hcp
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong
+from utils.messages import high_tricks, cards_of
 
 _S = SUIT_SYMBOLS
 
@@ -33,6 +33,17 @@ class LessonStudentOpensWeak2(BaseLesson):
     """שיעור 10: תלמיד (S) פותח Weak Two (2♥/2♠), מחשב (N) עונה"""
 
     TITLE = 'שיעור 10. Weak Two (אני פותח)'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonStudentOpensWeak2
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _wrong_message(self, correct):
+        return f'ההכרזה הנכונה\n{correct}'
 
     def start(self):
         if not self._replaying:
@@ -51,7 +62,7 @@ class LessonStudentOpensWeak2(BaseLesson):
         pos_str = f'יד {pos}'
         self.app.bidding_box.set_last_bid(None)
         self.app.set_instruction_table(
-            f'יש לך 6 קלפי {sym} ו-{hcp(self.hands["S"])} נקודות ({pos_str}). פתח!',
+            f'יש לך 6 קלפי {sym} ו-{hcp(self.hands["S"])} נקודות ({pos_str}). פתח',
             [
                 (f'2{sym}', '6 קלפים + 6–9 נקודות. Weak Two'),
             ]
@@ -76,24 +87,17 @@ class LessonStudentOpensWeak2(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # W
             self._finish(self._result_message(n_bid), ok=True)
         else:
-            pos_note = f'\n(יד {pos} — כללים מקלים)' if pos == 3 else f'\n(יד {pos})'
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')  # W
-                self.app.auction_widget.add_bid('Pass')  # N
-                self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(msg_chose_wrong(bid, correct) + pos_note, ok=False)
-                return
+            pos_note = f'\nיד {pos}, כללים מקלים' if pos == 3 else f'\nיד {pos}'
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(msg_chose_wrong(bid, correct) + pos_note, ok=False, correct_answer=correct)
+                self._finish(f'{self._wrong_message(correct)}{pos_note}', ok=False, correct_answer=correct)
 
     def _result_message(self, n_bid):
         n           = self.hands['N']
@@ -104,15 +108,16 @@ class LessonStudentOpensWeak2(BaseLesson):
         fit         = suit_len(n, self._major)
         other_len   = suit_len(n, other_major)
 
+        opener = self._next_opener()
         if n_bid == f'4{sym}':
-            return f'✓ מחשב קפץ ל-{n_bid}!\nיש {st} לקיחות גבוהות\nיש {fit} קלפי {sym}.'
+            return f'{opener}\nמחשב קפץ ל-{n_bid}\nיש {high_tricks(st)}\nיש {cards_of(fit, sym)}'
         if n_bid == f'4{other_sym}':
-            return f'✓ מחשב הכריז {n_bid}.\nיש {other_len} קלפי {other_sym} + {st} לקיחות גבוהות.'
+            return f'{opener}\nמחשב הכריז {n_bid}\nיש {cards_of(other_len, other_sym)} + {high_tricks(st)}'
         if n_bid == '3NT':
-            return f'✓ מחשב הכריז 3NT.\nיש {st} לקיחות גבוהות + עוצרים בכל הסדרות.'
+            return f'{opener}\nמחשב הכריז 3NT\nיש {high_tricks(st)} + עוצרים בכל הסדרות'
         if n_bid == f'3{sym}':
-            return f'✓ מחשב הפריע ל-3{sym}.\nיש 4 לקיחות גבוהות + {fit} קלפי {sym}.'
-        return f'✓ מחשב פס.\nרק {st} לקיחות גבוהות. לא מספיק להמשך.'
+            return f'{opener}\nמחשב הפריע ל-3{sym}\nיש 4 לקיחות גבוהות + {cards_of(fit, sym)}'
+        return f'{opener}\nמחשב פס\nרק {high_tricks(st)}'
 
     def _finish(self, message, ok, correct_answer=''):
         self._stage = 'done'

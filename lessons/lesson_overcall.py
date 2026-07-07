@@ -4,9 +4,7 @@ from engine.overcall import get_overcall, respond_overcall, _suit_quality
 from engine.opening import opening_bid as _opening_bid
 from engine.response import get_response
 from engine.scoring import hcp, distribution, dist_fit_pts, has_stopper
-from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong
-
+from engine.cards import SUIT_SYMBOLS, card_rank, card_suit
 _S = SUIT_SYMBOLS
 _SYM_TO_SUIT = {'♣': 'C', '♦': 'D', '♥': 'H', '♠': 'S'}
 _BID_RANK = {'♣': 1, '♦': 2, '♥': 3, '♠': 4}
@@ -43,8 +41,9 @@ def _n_bid_meaning(n_bid, s_bid1):
 
 
 def _shortage_pts(hand, trump_suit):
-    """נקודות חוסר עם התאמה: singleton=3, void=3, doubleton=0"""
+    """נקודות חוסר עם התאמה: void=3, singleton (לא מכובד)=2, doubleton=0"""
     d = distribution(hand)
+    honors = {'A', 'K', 'Q', 'J'}
     pts = 0
     for suit, cnt in d.items():
         if suit == trump_suit:
@@ -52,7 +51,9 @@ def _shortage_pts(hand, trump_suit):
         if cnt == 0:
             pts += 3
         elif cnt == 1:
-            pts += 3
+            has_honor = any(card_rank(c) in honors for c in hand if card_suit(c) == suit)
+            if not has_honor:
+                pts += 2
     return pts
 
 
@@ -83,9 +84,9 @@ def _s_rebid_correct(s_hand, s_bid1, n_last_bid, op_bid='Pass'):
                 sp    = _shortage_pts(s_hand, s_suit)
                 total = h + sp
                 if total >= 18:
-                    return f'4{s_sym}', f'{h}+{sp} נק׳ חוסר = {total} — משחק'
+                    return f'4{s_sym}', f'{h}+{sp} נק׳ חוסר, סה״כ {total}. משחק'
                 if total >= 16:
-                    return f'3{s_sym}', f'{h}+{sp} נק׳ חוסר = {total} — ניסיון משחק'
+                    return f'3{s_sym}', f'{h}+{sp} נק׳ חוסר, סה״כ {total}. ניסיון משחק'
             return 'Pass', f'{h} נק׳. שותף מינימום, פס'
 
         # N הזמין (diff>=2) — N=11-12 נק'
@@ -94,7 +95,7 @@ def _s_rebid_correct(s_hand, s_bid1, n_last_bid, op_bid='Pass'):
                 return f'4{s_sym}', f'{h} נק׳, יד חזקה. משחק'
             # מינור: צריך עוצר בצבע הפותח
             if op_suit and has_stopper(s_hand, op_suit):
-                return '3NT', f'{h} נק׳, עוצר — 3NT'
+                return '3NT', f'{h} נק׳, עוצר. 3NT'
             return 'Pass', f'{h} נק׳. אין עוצר ב-{op_bid[1]}, פס'
         return 'Pass', f'{h} נק׳. לא מספיק למשחק, פס'
 
@@ -337,6 +338,17 @@ class LessonOvercall(BaseLesson):
     """שיעור 12: תלמיד מכריז אוברקול, ממשיך להכריז בשלבים הבאים"""
 
     TITLE = 'שיעור 12. אוברקול'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonOvercall
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _wrong_message(self, correct):
+        return f'ההכרזה הנכונה\n{correct}'
 
     def start(self):
         if not self._replaying:
@@ -360,7 +372,7 @@ class LessonOvercall(BaseLesson):
         self.app.bidding_box.set_last_bid(self._e_bid)
         eval_txt = _hand_eval(self.hands['S'])
         self.app.set_instruction_table(
-            f'{eval_txt}\nיריב פתח {self._e_bid}. מה תכריז?',
+            f'{eval_txt}\nמה תכריז?',
             [
                 ('בגובה 1', '9-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
                 ('בגובה 2', '12-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
@@ -388,26 +400,15 @@ class LessonOvercall(BaseLesson):
             else:
                 self._run_auto_then_continue()
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._s_bid1    = bid
-                self._last_rank = _bid_value(bid)
-                if bid == 'Pass':
-                    self._add_pass_continuation()
-                    self._finish(msg_chose_wrong(bid, correct), ok=False)
-                else:
-                    self._run_auto_then_continue()
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(msg_chose_wrong(bid, correct), ok=False, correct_answer=correct)
+                self._finish(self._wrong_message(correct), ok=False, correct_answer=correct)
 
     # ── שלבים הבאים: S מכריז עם בדיקה ─────────────────────────────────────
 
@@ -422,31 +423,19 @@ class LessonOvercall(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'נכון!\n{explanation}.', ok=True)
+                self._finish(f'{self._next_opener()}\n{explanation}', ok=True)
             else:
                 self._run_auto_then_continue()
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._last_rank = _bid_value(bid)
-                if bid == 'Pass' or _is_game(bid):
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self.app.auction_widget.add_bid('Pass')
-                    self._finish(msg_chose_wrong(bid, correct), ok=False)
-                else:
-                    self._run_auto_then_continue()
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(msg_chose_wrong(bid, correct), ok=False, correct_answer=correct)
+                self._finish(self._wrong_message(correct), ok=False, correct_answer=correct)
 
     # ── המשך מכרז אחרי פס של S ──────────────────────────────────────────────
 
@@ -542,7 +531,7 @@ class LessonOvercall(BaseLesson):
 
         # בדוק אם המכרז נסגר (3 פסים: W+N+E כולם פסו)
         if passes == 3 or _is_game(auto[-2] if len(auto) >= 2 else 'Pass'):
-            self._finish('✓ מכרז הסתיים.', ok=True)
+            self._finish('מכרז הסתיים', ok=True)
             return
 
         # S מכריז שוב
@@ -552,9 +541,8 @@ class LessonOvercall(BaseLesson):
         eval_txt = _hand_eval(self.hands['S'])
         n_info = self._n_last_bid if self._n_last_bid else ''
         n_meaning = _n_bid_meaning(n_info, self._s_bid1 or '')
-        e_note = f'\nיריב הכריז {self._e_last_bid}.' if self._e_last_bid else ''
         self.app.set_instruction_table(
-            f'{eval_txt}\nשותף הכריז {n_info} ({n_meaning}).{e_note} מה תכריז?',
+            f'{eval_txt}\n{n_meaning}\nמה תכריז?',
             [('4M / 3NT', 'יד חזקה. משחק'),
              ('Pass',     'מינימום. פס')]
         )
@@ -566,17 +554,18 @@ class LessonOvercall(BaseLesson):
         s = self.hands['S']
         h = hcp(s)
         d = distribution(s)
+        opener = self._next_opener()
         if bid == 'Pass':
-            return f'✓ נכון! פס.\nיש לך {h} נקודות גבוהות. אין אוברקול מתאים.'
+            return f'{opener}\nיש לך {h} נקודות גבוהות\nאין אוברקול מתאים\nההכרזה הנכונה\nPass'
         sym     = bid[1]
         suit    = _SYM_TO_SUIT.get(sym, '')
         length  = d.get(suit, 0)
         quality = _suit_quality(s, suit)
         return (
-            f'✓ נכון! {bid}\n'
+            f'{opener}\n'
             f'יש לך {h} נקודות גבוהות\n'
             f'יש לך {length} קלפי {sym} עם {quality} מכובדים\n'
-            f'ניתן להכריז אוברקול'
+            f'ההכרזה הנכונה\n{bid}'
         )
 
     def _finish(self, message, ok, correct_answer=''):

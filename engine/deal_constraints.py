@@ -209,7 +209,8 @@ def deal_with_overcall(north_opening='1♥'):
 def deal_robot_opens_1nt_stayman():
     """
     N = 15-17 HCP מאוזן.
-    S = 8-14 HCP, 2+ רביעיות, אחת לפחות במיגור עיקרי (בדיוק 4, לא 5+).
+    S = 0-14 HCP, 2+ רביעיות, אחת לפחות במיגור עיקרי (בדיוק 4, לא 5+).
+    (כולל 0-7 נק' — מפתה לסטיימן אבל התשובה הנכונה פס.)
     """
     def ok(hands):
         n = hands['N']
@@ -217,7 +218,7 @@ def deal_robot_opens_1nt_stayman():
         if not (15 <= hcp(n) <= 17 and is_balanced(n)):
             return False
         hs = hcp(s)
-        if not (8 <= hs <= 14):
+        if not (0 <= hs <= 14):
             return False
         d = distribution(s)
         if d['H'] >= 5 or d['S'] >= 5:
@@ -371,6 +372,64 @@ def deal_robot_opens_minor(minor='C', advanced=False, scenario='free'):
             if not (has_major or is_balanced(s)):
                 return False
         return True
+    return _try(ok)
+
+
+def deal_minor_nt(minor='D'):
+    """
+    שיעור 15: N פותח 1♦, S מראה 5+ קלפי מינור עם 11-14 (3♦)
+    N: 12-14 או 18-19 HCP, 4+ minor
+    S: 11-14 HCP, 5+ minor, ללא 4+ מיגור
+    scenario:
+      n_low      — N<14: לא בטוח ב-25+ נק' משותפות (S מובטח רק 11+) → Pass, נשארים ב-3m
+      s_has_stop — N>=14, לS יש עוצר בסדרה שN שואל → 3NT
+      s_no_stop  — N>=14, לS אין עוצר → 5m
+    """
+    import random as _rnd
+    scenario = _rnd.choice(['n_low', 's_has_stop', 's_no_stop'])
+    other = [s for s in ['H', 'S', 'C', 'D'] if s != minor]
+    sym = SUIT_SYMBOLS[minor]
+
+    def ok(hands):
+        n, s = hands['N'], hands['S']
+        hn, hs = hcp(n), hcp(s)
+        dn, ds = distribution(n), distribution(s)
+        if not ((12 <= hn <= 14) or (18 <= hn <= 19)):
+            return False
+        if suit_len(n, minor) < 4:
+            return False
+        if _opening_bid(n)[0] != f'1{sym}':
+            return False
+        if not (11 <= hs <= 14):
+            return False
+        if ds[minor] < 5:
+            return False
+        if ds['H'] >= 4 or ds['S'] >= 4:
+            return False
+
+        if scenario == 'n_low':
+            return 12 <= hn <= 13
+
+        if hn < 14:
+            return False
+
+        # N חסר עוצר בדיוק בסדרה אחת
+        n_missing = [su for su in other if not has_stopper(n, su)]
+        if len(n_missing) != 1:
+            return False
+        ask = n_missing[0]
+        if scenario == 's_has_stop':
+            if not has_stopper(s, ask):
+                return False
+            if hn + hs < 25:
+                return False
+        elif scenario == 's_no_stop':
+            if has_stopper(s, ask):
+                return False
+            if hn + hs < 28:
+                return False
+        return True
+
     return _try(ok)
 
 
@@ -547,24 +606,49 @@ def deal_slam_major(major='H'):
 def deal_slam_nt_mode_a():
     """
     Mode A: N=15-17 HCP מאוזן (פותח 1NT).
-    S=0-18 HCP מאוזן, ללא 5+ מיגור עיקרי.
-    35% slam: S=16-18 ו-total>=33 (מוביל ל-6NT).
+    S=0-21 HCP מאוזן, ללא 5+ מיגור עיקרי.
+    10% grand try: S=20-21 (תמיד total>=33, לפעמים 37+ תלוי ב-N — שאלת 5NT).
+    25% slam: S=16-18 ו-total>=33 (מוביל ל-6NT ישיר, בלי שאלת 5NT).
     """
-    use_slam = random.random() < 0.35
+    r = random.random()
+    scenario = 'grand_try' if r < 0.10 else ('slam' if r < 0.35 else 'plain')
+
+    if scenario in ('grand_try', 'slam'):
+        # שילוב HCP גבוה בשני הצדדים ביחד נדיר מדי ל-_try על חלוקה אקראית מלאה.
+        # דיל דו-שלבי: קובעים קודם את N (15-17 מאוזן), ואז מחפשים S בין הנותרים.
+        hs_lo, hs_hi = (20, 21) if scenario == 'grand_try' else (16, 18)
+        for _outer in range(_MAX_TRIES):
+            deck = make_deck()
+            random.shuffle(deck)
+            n = deck[:13]
+            if not (15 <= hcp(n) <= 17 and is_balanced(n)):
+                continue
+            hn = hcp(n)
+            remaining = deck[13:]
+            for _inner in range(200):
+                random.shuffle(remaining)
+                s = remaining[:13]
+                hs = hcp(s)
+                if not (hs_lo <= hs <= hs_hi):
+                    continue
+                if scenario == 'slam' and hs + hn < 33:
+                    continue
+                if not is_balanced(s):
+                    continue
+                d = distribution(s)
+                if not (d['H'] < 4 and d['S'] < 4):
+                    continue
+                return {'N': n, 'E': remaining[13:26], 'S': s, 'W': remaining[26:]}
+        raise RuntimeError('לא ניתן לחלק יד עם האילוצים שנדרשו')
+
     def ok(hands):
         n, s = hands['N'], hands['S']
         hn = hcp(n)
         if not (15 <= hn <= 17 and is_balanced(n)):
             return False
         hs = hcp(s)
-        if use_slam:
-            if not (16 <= hs <= 18):
-                return False
-            if hs + hn < 33:
-                return False
-        else:
-            if not (0 <= hs <= 15):
-                return False
+        if not (0 <= hs <= 15):
+            return False
         if not is_balanced(s):
             return False
         d = distribution(s)
@@ -672,28 +756,38 @@ def deal_slam_nt_mode_e():
 def deal_slam_nt_mode_b():
     """
     Mode B: N=20-22 HCP מאוזן (פותח 2NT).
-    S=5-15 HCP מאוזן, ללא 4+ מיגור.
-    35% slam: S=13-15 (combined תמיד ≥ 33).
+    S=5-18 HCP מאוזן, ללא 4+ מיגור.
+    10% grand slam: S=17-18 (combined תמיד ≥ 37, גם במקרה הכי גרוע N=20).
+    25% slam: S=13-15 (combined תמיד ≥ 33).
     65% non-slam: S=5-12.
     """
-    use_slam = random.random() < 0.35
-    def ok(hands):
-        n, s = hands['N'], hands['S']
-        hn = hcp(n)
-        if not (20 <= hn <= 22 and is_balanced(n)):
-            return False
-        hs = hcp(s)
-        if use_slam:
-            if not (13 <= hs <= 15):
-                return False
-        else:
-            if not (5 <= hs <= 12):
-                return False
-        if not is_balanced(s):
-            return False
-        d = distribution(s)
-        return d['H'] < 4 and d['S'] < 4
-    return _try(ok)
+    r = random.random()
+    scenario = 'grand' if r < 0.10 else ('slam' if r < 0.35 else 'plain')
+    hs_range = {'grand': (17, 18), 'slam': (13, 15), 'plain': (5, 12)}[scenario]
+
+    # דיל דו-שלבי: קובעים קודם את N (20-22 מאוזן, נדיר), ואז מחפשים S בין הנותרים.
+    # יעיל ואמין יותר מ-_try על חלוקה אקראית מלאה, במיוחד בתרחיש grand
+    # (N+S ביחד לוקחים 37-40 מתוך 40 נק' בקלף).
+    for _outer in range(_MAX_TRIES):
+        deck = make_deck()
+        random.shuffle(deck)
+        n = deck[:13]
+        if not (20 <= hcp(n) <= 22 and is_balanced(n)):
+            continue
+        remaining = deck[13:]
+        for _inner in range(200):
+            random.shuffle(remaining)
+            s = remaining[:13]
+            hs = hcp(s)
+            if not (hs_range[0] <= hs <= hs_range[1]):
+                continue
+            if not is_balanced(s):
+                continue
+            d = distribution(s)
+            if not (d['H'] < 4 and d['S'] < 4):
+                continue
+            return {'N': n, 'E': remaining[13:26], 'S': s, 'W': remaining[26:]}
+    raise RuntimeError('לא ניתן לחלק יד עם האילוצים שנדרשו')
 
 
 def deal_slam_nt_mode_c(opening='C', response='H'):
@@ -1742,18 +1836,23 @@ def deal_negative_double_phase1():
         if not n_bid or n_bid[0] != '1' or 'NT' in n_bid:
             continue
         n_suit = next((v for k, v in _ND_SYM.items() if k in n_bid), None)
-        if not n_suit or n_suit not in ('C', 'D'):
+        if not n_suit:
             continue
 
         he = hcp(e)
         if not (8 <= he <= 14):
             continue
         de = distribution(e)
-        e_candidates = [m for m in ['H', 'S'] if de[m] >= 5]
+        if max(de.values()) > 6:
+            continue
+        if n_suit in ('C', 'D'):
+            e_candidates = [m for m in ['H', 'S'] if de[m] >= 5]
+        else:
+            e_candidates = [su for su in ['S', 'H', 'D', 'C'] if su != n_suit and de[su] >= 5]
         if len(e_candidates) != 1:
             continue
         e_suit = e_candidates[0]
-        e_level = 1
+        e_level = 1 if _ND_RANK[e_suit] > _ND_RANK[n_suit] else 2
 
         ds = distribution(s)
         if min(ds.values()) < 2:  # חצי מאוזן — אין בודד לS
@@ -1770,6 +1869,19 @@ def deal_negative_double_phase1():
         elif scenario == 'cue':
             if not s_suit or s_suit != e_suit:
                 continue
+            dn = distribution(n)
+            unbid_major = next((m for m in ['S', 'H'] if m not in (n_suit, e_suit)), None)
+            # חצי עם עוצר → 3NT, חצי ללא עוצר → שליט 7 קלפים
+            if random.random() < 0.5:
+                if not has_stopper(n, e_suit):
+                    continue
+            else:
+                if has_stopper(n, e_suit):
+                    continue
+                if not unbid_major or dn[unbid_major] < 4:
+                    continue
+                if ds.get(unbid_major, 0) < 3:
+                    continue
         elif scenario == '3NT':
             if bid != '3NT':
                 continue
@@ -1820,20 +1932,26 @@ def deal_negative_double_phase2():
         if not n_bid or n_bid[0] != '1' or 'NT' in n_bid:
             continue
         n_suit = next((v for k, v in _ND_SYM.items() if k in n_bid), None)
-        if not n_suit or n_suit not in ('C', 'D'):
+        if not n_suit:
             continue
 
         he = hcp(e)
         if not (8 <= he <= 14):
             continue
         de = distribution(e)
-        e_candidates = [m for m in ['H', 'S'] if de[m] >= 5]
+        if max(de.values()) > 6:
+            continue
+        if n_suit in ('C', 'D'):
+            e_candidates = [m for m in ['H', 'S'] if de[m] >= 5]
+        else:
+            e_candidates = [su for su in ['S', 'H', 'D', 'C'] if su != n_suit and de[su] >= 5]
         if len(e_candidates) != 1:
             continue
         e_suit = e_candidates[0]
+        e_level = 1 if _ND_RANK[e_suit] > _ND_RANK[n_suit] else 2
 
         from engine.negative_double import can_negative_double
-        if not can_negative_double(s, n_suit, e_suit, e_level=1):
+        if not can_negative_double(s, n_suit, e_suit, e_level=e_level):
             continue
 
         dn = distribution(n)

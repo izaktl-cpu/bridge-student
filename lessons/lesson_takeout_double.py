@@ -1,11 +1,9 @@
 from lessons.base import BaseLesson
 from engine.deal_constraints import deal_takeout_double_phase1, deal_takeout_double_phase2
-from engine.takeout_double import can_double, respond_to_double, doubler_raises, doubler_rebid, respond_to_cue, suit_of
-from engine.scoring import hcp, distribution
+from engine.takeout_double import can_double, phase2_decision, respond_to_double, doubler_raises, doubler_rebid, respond_to_cue, suit_of
+from engine.scoring import hcp, distribution, is_balanced, has_stopper
 from engine.cards import SUIT_SYMBOLS
 from engine.opening import opening_bid as _opening_bid
-from utils.messages import msg_retry, msg_chose_wrong, msg_chose_wrong_why
-
 _S = SUIT_SYMBOLS
 _SYM_MAP = {'♣': 'C', '♦': 'D', '♥': 'H', '♠': 'S'}
 
@@ -22,7 +20,15 @@ def _suit_sym(suit):
 
 
 class LessonTakeoutDouble(BaseLesson):
-    TITLE = 'שיעור 14. דבל להוצאה'
+    TITLE = 'שיעור 13. דבל להוצאה'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonTakeoutDouble
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
 
     def start(self):
         if not self._replaying:
@@ -41,8 +47,8 @@ class LessonTakeoutDouble(BaseLesson):
                 e_bid, _ = _opening_bid(self.hands['E'])
                 self._e_bid  = e_bid
                 self._e_suit = _bid_suit(e_bid)
-                self._correct = 'X' if can_double(
-                    self.hands['S'], self._e_suit, level=1) else 'Pass'
+                self._correct = phase2_decision(
+                    self.hands['S'], self._e_suit, level=1)
 
         self._replaying = False
         self._tries     = 0
@@ -109,7 +115,8 @@ class LessonTakeoutDouble(BaseLesson):
                     self.app.auction_widget.add_bid('Pass')       # S ← תלמיד פס
                     self.app.auction_widget.add_bid('Pass')       # W
                     self._finish(
-                        f'נכון. {bid}\n{self._expl}\nN עם {hn} נק׳ — מעלה ל-{n_raise}.',
+                        f'{self._next_opener()}\n{self._expl}\n'
+                        f'שותף עם {hn} נק׳ מעלה ל-{n_raise}\nההכרזה הנכונה\n{bid}',
                         ok=True)
                 else:
                     # N פס — W-פס, N-פס, E-פס
@@ -117,31 +124,20 @@ class LessonTakeoutDouble(BaseLesson):
                     self.app.auction_widget.add_bid('Pass')       # N
                     self.app.auction_widget.add_bid('Pass')       # E
                     self._finish(
-                        f'נכון. {self._w_bid}. X. {bid}\n{self._expl}\nN עם {hn} נק׳ — פס.',
+                        f'{self._next_opener()}\n{self._expl}\n'
+                        f'שותף עם {hn} נק׳ פס\nההכרזה הנכונה\n{bid}',
                         ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong_why(bid, correct, self._expl), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                h = hcp(self.hands['S'])
-                hint = (f'{h} נק׳. הכרז ברמה הנמוכה' if h <= 8
-                        else f'{h} נק׳. קפוץ רמה' if h <= 12
-                        else f'{h} נק׳. הכרז קיו ביט (צבע יריב)')
-                self.app.set_feedback(f'{hint}\nנסה שנית.', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    msg_chose_wrong_why(bid, correct, self._expl),
+                    f'ההכרזה הנכונה\n{correct}',
                     ok=False, correct_answer=correct)
 
     def _enter_cue_dialogue(self, cue_bid):
@@ -169,8 +165,7 @@ class LessonTakeoutDouble(BaseLesson):
         n_sym = _suit_sym(n_suit) if n_suit else 'NT'
         n_len = d.get(n_suit, 0) if n_suit else 0
         self.app.set_instruction(
-            f'N הכריז {n_bid}. {n_expl}.\n'
-            f'יש לך {n_len} קלפי {n_sym}. מה תכריז?'
+            f'יש לך {n_len} קלפי {n_sym}\nמה תכריז?'
         )
 
     def _on_phase1_cue(self, bid):
@@ -186,31 +181,26 @@ class LessonTakeoutDouble(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'נכון. {bid}\n{self._cue_expl}\nN סוגר ל-{game}', ok=True)
+                self._finish(
+                    f'{self._next_opener()}\n{self._cue_expl}\n'
+                    f'שותף סוגר ל-{game}\nההכרזה הנכונה\n{bid}',
+                    ok=True)
             else:
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'נכון. {bid}\n{self._cue_expl}', ok=True)
+                self._finish(f'{self._next_opener()}\n{self._cue_expl}\nההכרזה הנכונה\n{bid}', ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(f'בחרת {bid}.\n{self._cue_expl}\nהנכון: {correct}.', ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(f'נסה שוב. {self._cue_expl}', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'בחרת {bid}. הנכון: {correct}.\n{self._cue_expl}',
+                    f'{self._cue_expl}\nההכרזה הנכונה\n{correct}',
                     ok=False, correct_answer=correct)
 
     # ── שלב 2: S מחליט האם לכריז X כנגד E ────────────────────────────────
@@ -227,11 +217,11 @@ class LessonTakeoutDouble(BaseLesson):
         h  = hcp(self.hands['S'])
         es = _suit_sym(self._e_suit)
         self.app.set_instruction_table(
-            f'E פתח {self._e_bid}.\nיש לך {h} נק׳. האם תכריז X?',
+            f'E פתח {self._e_bid}.\nיש לך {h} נק׳. מה תכריז?',
             [
-                ('12–16 נק׳',       'תנאי נקודות'),
-                ('3+ בכל צבע',     'חוץ מצבע יריב'),
-                (f'מקס׳ 3 ב-{es}', 'קוצר בצבע יריב'),
+                ('X',   f'12-16 נק׳, קוצר ב-{es}, 3+ בכל השאר\nאו 17+ נק׳ (כל חלוקה)'),
+                ('1NT', f'15-18 נק׳, מאוזן, עוצר ב-{es}'),
+                ('Pass', 'לא עומד בתנאים'),
             ]
         )
 
@@ -254,32 +244,40 @@ class LessonTakeoutDouble(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')        # S ← תלמיד פס
                 self.app.auction_widget.add_bid('Pass')        # W
                 self.app.auction_widget.add_bid('Pass')        # N
-                msg = (f'נכון. X.\n'
-                       f'{h} נק׳, {ec} קלפים בצבע יריב. עומד בתנאים.\n'
-                       f'N עם {hn} נק׳ עונה {n_bid}.')
+                msg = (f'{self._next_opener()}\n'
+                       f'{self._correct_reason(h, d, "X")}\n'
+                       f'N עם {hn} נק׳ עונה {n_bid}\n'
+                       f'ההכרזה הנכונה\nX')
+            elif correct == '1NT':
+                self.app.auction_widget.add_bid('Pass')  # W
+                self.app.auction_widget.add_bid('Pass')  # N
+                self.app.auction_widget.add_bid('Pass')  # E
+                msg = (f'{self._next_opener()}\n'
+                       f'{self._correct_reason(h, d, "1NT")}\n'
+                       f'ההכרזה הנכונה\n1NT')
             else:
-                msg = f'נכון. פס.\n{self._no_double_reason(h, d)}'
+                msg = f'{self._next_opener()}\n{self._no_double_reason(h, d)}\nההכרזה הנכונה\nPass'
             self._finish(msg, ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                reason = (f'{h} נק׳. עומד בתנאים.'
-                          if correct == 'X' else self._no_double_reason(h, d))
-                self._finish(f'בחרת {bid}.\n{reason}\nהנכון: {correct}.', ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                hint = (f'יש לך {h} נק׳ ותבנית מתאימה. כריז X.'
-                        if correct == 'X' else self._no_double_reason(h, d))
-                self.app.set_feedback(f'{hint}\nנסה שנית.', ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                reason = (f'{h} נק׳. עומד בתנאים.'
-                          if correct == 'X' else self._no_double_reason(h, d))
+                reason = self._correct_reason(h, d, correct)
                 self._finish(
-                    f'בחרת {bid}. הנכון: {correct}.\n{reason}',
+                    f'{reason}\nההכרזה הנכונה\n{correct}',
                     ok=False, correct_answer=correct)
+
+    def _correct_reason(self, h, d, correct):
+        if correct == 'X':
+            if h >= 17:
+                return f'{h} נק׳. דבל גדול (17+), כל חלוקה.'
+            ec = d.get(self._e_suit, 0)
+            return f'{h} נק׳, {ec} קלפים בצבע יריב, עומד בתנאים.'
+        if correct == '1NT':
+            return f'{h} נק׳, מאוזן, עוצר ב-{_suit_sym(self._e_suit)}.'
+        return self._no_double_reason(h, d)
 
     def _no_double_reason(self, h, d):
         if not (12 <= h <= 16):

@@ -88,27 +88,25 @@ def respond_minor(hand, opener_suit):
         return 'Pass', '0-5 נקודות גבוהות, מכריזים פס'
 
     if h >= 6:
-        # מיגורים. עדיפות ראשונה תמיד
+        # סדרה חדשה (4+ קלפים): הסדרה הארוכה ביותר קודמת.
+        # שוויון ב-5+: הגבוהה קודמת. שוויון בדיוק ב-4: עולים בסולם (הזולה קודמת).
         hs, hh = d['S'], d['H']
-        if hs >= 5 and hh >= 5:
-            return '1♠', 'שתי חמישיות במיגורים. מכריזים את הגבוהה קודם'
-        if hs > hh and hs >= 4:
-            return '1♠', '4+ קלפי ♠. מחפש התאמה במיגור'
-        if hh > hs and hh >= 4:
-            return '1♥', '4+ קלפי ♥. מחפש התאמה במיגור'
-        if hh >= 4 and hs >= 4:
-            return '1♥', '4-4 במיגורים. up the line, ♥ לפני ♠'
+        _rank = {'D': 0, 'H': 1, 'S': 2}
+        candidates = []
+        if opener_suit == 'C' and d['D'] >= 4:
+            candidates.append((d['D'], _rank['D'], '1♦', 'קלפי ♦'))
         if hh >= 4:
-            return '1♥', '4+ קלפי ♥. מחפש התאמה במיגור'
+            candidates.append((hh, _rank['H'], '1♥', 'קלפי ♥'))
         if hs >= 4:
-            return '1♠', '4+ קלפי ♠. מחפש התאמה במיגור'
+            candidates.append((hs, _rank['S'], '1♠', 'קלפי ♠'))
 
-        # אחרי 1♣: אין מיגור. 5+ ♣ מכריזים 2♣ ישירות, אחרת 1♦ אם יש 4+
-        if opener_suit == 'C':
-            if d['C'] >= 5:
-                return '2♣', '5+ קלפי ♣. תמיכה ישירה'
-            if d['D'] >= 4:
-                return '1♦', '4+ קלפי ♦. up the line'
+        if candidates:
+            max_len = max(c[0] for c in candidates)
+            tied = [c for c in candidates if c[0] == max_len]
+            chosen = (max(tied, key=lambda c: c[1]) if max_len >= 5
+                      else min(tied, key=lambda c: c[1]))
+            _, _, bid, desc = chosen
+            return bid, f'{max_len}+ {desc}. הסדרה הארוכה ביותר'
 
     if opener_suit == 'C' and fit >= 5:
         dp_note = f' (+{dp} חוסר)' if dp else ''
@@ -151,25 +149,49 @@ def respond_minor(hand, opener_suit):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  מענה ל-2♣ חזקה
+#  מענה ל-1♦/1♣ עם 5+ מינור, 11+ (שיעור 15 — NT במינור)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def respond_2c(hand):
-    h = hcp(hand)
-    d = distribution(hand)
+def respond_minor_nt(hand, minor):
+    """S: 5+ קלפי מינור, 11-14 HCP. קפיצה ישירה ל-3 במינור."""
+    sym = _S[minor]
+    return f'3{sym}', f'5+ קלפי {sym}, 11+ נקודות. קפיצה ישירה'
 
-    if h <= 7:
-        return '2♦', '0-7 נקודות גבוהות. 2♦ תגובה שלילית/ממתין'
 
-    # תגובה חיובית עם סוויט
-    for suit in ['S', 'H', 'D']:
-        if d[suit] >= 5 and h >= 8:
-            return f'2{_S[suit]}', f'5+ קלפי {_S[suit]}, 8+ נקודות. תגובה חיובית'
+def opener_rebid_after_3minor(hand, minor):
+    """N: לאחר קפיצת S ל-3 במינור (11-14). שואל עוצר רק אם בטוח ב-25+ נק' משותפות
+    (S מובטח 11+, אז צריך N בעצמו 14+). אחרת נשאר הכי נמוך שאפשר — Pass."""
+    if hcp(hand) < 14:
+        return 'Pass', 'לא בטוח ב-25+ נקודות משותפות. נשארים ב-3 במינור'
+    other = [su for su in ['H', 'S', 'C', 'D'] if su != minor]
+    missing = [su for su in other if not has_stopper(hand, su)]
+    if not missing:
+        return '3NT', 'עוצרים בכל הסדרות. 3NT'
+    _suit_rank = {'C': 0, 'D': 1, 'H': 2, 'S': 3}
+    ask = missing[0]
+    if _suit_rank[ask] <= _suit_rank[minor]:
+        return '3NT', f'3{_S[ask]} לא חוקי מעל 3{_S[minor]} (סדרה נמוכה יותר). 3NT ישיר'
+    return f'3{_S[ask]}', f'שואל עוצר ב-{_S[ask]}'
 
-    if is_balanced(hand) and h >= 8:
-        return '2NT', '8+ נקודות מאוזן. 2NT חיובי'
 
-    return '2♦', '0-7 נקודות גבוהות. 2♦ ממתין'
+def responder_stopper_reply(hand, minor, ask_suit):
+    """S: עונה לשאלת העוצר של N. יש עוצר → 3NT.
+    אין עוצר → חוזר לרמה הכי נמוכה האפשרית במינור (4m, לא קופצים ל-5m —
+    N כבר יודע ש-S מובטח 11-14 ויחליט בעצמו אם להרים ל-5m)."""
+    sym = _S[minor]
+    if has_stopper(hand, ask_suit):
+        return '3NT', f'יש עוצר ב-{_S[ask_suit]}. 3NT'
+    return f'4{sym}', f'אין עוצר ב-{_S[ask_suit]}. חוזרים ל-4{sym} (הרמה הכי נמוכה)'
+
+
+def opener_after_stopper_denial(hand, minor):
+    """N: לאחר ש-S חזר ל-4m (אין עוצר). N מחליט אם להרים ל-5m או להישאר.
+    S מובטח 11-14; כדי להעריך 28+ נק' משותפות (סף משחק במינור) N צריך בעצמו 17+."""
+    h   = hcp(hand)
+    sym = _S[minor]
+    if h >= 17:
+        return f'5{sym}', f'{h} נקודות. מספיק ל-28+ נקודות משותפות, מקבלים למשחק'
+    return 'Pass', f'{h} נקודות. לא בטוח ב-28+ משותפות, נשארים ב-4{sym}'
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -368,13 +390,13 @@ def responder_continuation_after_minor(hand, s_bid, n_rebid):
     if n_rebid == '1♠':
         fit = d.get('S', 0)
         if fit >= 4:
-            dp  = dist_fit_pts(hand, trump='S')
-            tot = h + dp
+            lp  = fit - 3  # נק' אורך: כל קלף מעל 3 בשליט
+            tot = h + lp
             if tot >= 13:
                 return '4♠', '4+ קלפי ♠, 13+ נקודות. משחק מלא'
-            if tot >= 9:
-                return '3♠', '4+ קלפי ♠, 9-12 נקודות. הזמנה'
-            return '2♠', '4+ קלפי ♠, 6-8 נקודות. תמיכה'
+            if tot >= 10:
+                return '3♠', '4+ קלפי ♠, 10-12 נקודות. הזמנה'
+            return '2♠', '4+ קלפי ♠, 6-9 נקודות. תמיכה'
         if d.get('H', 0) >= 5 and h >= 10:
             return '3♥', '5+ קלפי ♥, 10+ נקודות. יד חזקה עם לב'
         if d.get('H', 0) >= 4 and h >= 13:
@@ -521,7 +543,7 @@ def respond_2c_second(hand, opener_second):
         # 3♦ מלאכותי. כדי שהפותח יגלם 3NT (לא S)
         return '3♣', f'ללא התאמה ב-{sym}.\nשקר! 3♣ לא מראה תלתנים.\nN יכריז 3NT ויגלם'
 
-    # ── מינור (כפוי למשחק). עדיפות: 4M → 3NT → 5מינור (נדיר) ─────────────
+    # ── מינור (כפוי למשחק). עדיפות: 4M → 8+ נק' שואל אסים → 3NT ─────────
     if opener_suit in ('C', 'D'):
         sym = _S[opener_suit]
         # עדיפות 1: מיגור עיקרי
@@ -531,7 +553,10 @@ def respond_2c_second(hand, opener_second):
             return '3♥', '5+ קלפי ♥. מראה מיגור'
         if d['S'] >= 5:
             return '3♠', '5+ קלפי ♠. מראה מיגור'
-        # עדיפות 2: 3NT. הפותח החזק מכסה את העוצרים
+        # עדיפות 2: 8+ נקודות. Blackwood לחקור סלם
+        if h >= 8:
+            return '4NT', f'{h} נקודות, ללא מיגור עיקרי. Blackwood לחקור 6NT'
+        # עדיפות 3: 3NT. הפותח החזק מכסה את העוצרים
         return '3NT', 'ללא 5 קלפי מיגור. 3NT (עדיף על 5 במינור)'
 
     return '3NT', 'ממשיך למשחק'

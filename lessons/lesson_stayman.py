@@ -1,8 +1,7 @@
 from lessons.base import BaseLesson
 from engine.deal_constraints import deal_robot_opens_1nt_stayman
 from engine.scoring import hcp, distribution
-from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong, msg_correct_final
+from engine.cards import SUIT_SYMBOLS, card_rank, card_suit
 
 _S = SUIT_SYMBOLS
 
@@ -11,6 +10,25 @@ class LessonStayman(BaseLesson):
     """שיעור 4א: סטיימן לאחר פתיחת 1NT של המחשב"""
 
     TITLE = 'שיעור 4. סטיימן'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonStayman
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _correct_message(self, final, extra_pts=0):
+        h = hcp(self.hands['S']) + extra_pts
+        return (f'{self._next_opener()}\n'
+                f'יש לך {h} נקודות\n'
+                f'ההכרזה הנכונה\n'
+                f'{final}')
+
+    def _wrong_message(self, correct, extra_pts=0):
+        h = hcp(self.hands['S']) + extra_pts
+        return f'יש לך {h} נקודות\nההכרזה הנכונה\n{correct}'
 
     def start(self):
         if not self._replaying:
@@ -39,26 +57,18 @@ class LessonStayman(BaseLesson):
     # ── שלב 1: תגובה ראשונית ──────────────────────────────────────────────
 
     def _handle_respond(self, bid):
-        correct, why = self._calc_correct_first_bid()
+        correct = self._calc_correct_first_bid()
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
             self.app.auction_widget.add_bid('Pass')               # W
-            self._execute_first_bid(bid, why)
+            self._execute_first_bid(bid, self._correct_message(bid))
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self._execute_first_bid(bid, '')
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
-                self.app.set_feedback(f'הנכון: {correct}.', ok=False)
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self._execute_first_bid(bid, f'הנכון: {correct}.')
+                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
@@ -66,45 +76,41 @@ class LessonStayman(BaseLesson):
         has_major_4 = d['H'] == 4 or d['S'] == 4
         four_count = sum([d['S'] == 4, d['H'] == 4, d['D'] >= 4, d['C'] >= 4])
         if h >= 8 and has_major_4 and four_count >= 2:
-            return '2♣', f'{h} נקודות, 2 רביעיות עם מיגור. סטיימן 2♣'
+            return '2♣'
         if h <= 7:
-            return 'Pass', f'{h} נקודות. מכריזים פס'
+            return 'Pass'
         if h <= 9:
-            return '2NT', f'{h} נקודות. מזמינים ל-3NT'
-        return '3NT', f'{h} נקודות. מכריזים משחק מלא'
+            return '2NT'
+        return '3NT'
 
-    def _execute_first_bid(self, bid, why):
-        ok = not why.startswith('הנכון')
-        prefix = '✓ ' if ok else ''
+    def _execute_first_bid(self, bid, message):
         if bid == 'Pass':
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{prefix}{why}\nחוזה סופי: 1NT.', ok=ok)
+            self._finish(message, ok=True)
         elif bid == '2NT':
             from engine.rebid import opener_rebid
             north_bid, n_why = opener_rebid(self.hands['N'], '1NT', '2NT')
             self.app.auction_widget.add_bid(north_bid)  # N
             self.app.auction_widget.add_bid('Pass')     # E
-            final = '2NT' if north_bid == 'Pass' else north_bid
-            msg = f'{prefix}{why}\nמחשב: {north_bid}.\nחוזה סופי: {final}.'
             if north_bid != 'Pass':
-                self._start_closing(msg, ok=ok)
+                self._start_closing(message, ok=True)
             else:
-                self._finish(msg, ok=ok)
+                self._finish(message, ok=True)
         elif bid == '3NT':
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{prefix}{why}\nחוזה סופי: 3NT.', ok=ok)
+            self._finish(message, ok=True)
         elif bid == '2♣':
-            self._do_stayman(why)
+            self._do_stayman()
         else:
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{why}\nחוזה סופי: {bid}.', ok=False)
+            self._finish(message, ok=False)
 
     # ── סטיימן ────────────────────────────────────────────────────────────
 
-    def _do_stayman(self, why):
+    def _do_stayman(self):
         d_n = distribution(self.hands['N'])
         if d_n['H'] >= 4:
             self._stayman_reply = '2♥'
@@ -113,7 +119,6 @@ class LessonStayman(BaseLesson):
         else:
             self._stayman_reply = '2♦'
 
-        self._stayman_why = why
         # S bid 2♣ and W Pass already added; N replies
         self.app.auction_widget.add_bid(self._stayman_reply)  # N
         self.app.auction_widget.add_bid('Pass')               # E
@@ -121,22 +126,26 @@ class LessonStayman(BaseLesson):
         self._stage = 'stayman_cont'
         self._tries = 0
 
-        h = hcp(self.hands['S'])
         r = self._stayman_reply
         reply_text = {'2♦': 'אין מיגור עיקרי', '2♥': 'יש לו ♥', '2♠': 'יש לו ♠, אין ♥'}[r]
         fit = self._has_fit()
         fit_suit = self._fit_suit()
         if fit:
-            shortage = self._shortage_pts()
-            total = h + shortage
-            if shortage > 0:
-                pts_str = f'יש {h} נקודות גבוהות\nיש {shortage} נקודות חוסר\nסה״כ {total}'
-            else:
-                pts_str = f'יש {h} נקודות'
-            hint = f'יש התאמה ב-{fit_suit}.\n{pts_str}\n8-9 סה״כ → 3{fit_suit}  |  10+ סה״כ → 4{fit_suit}'
+            self.app.set_instruction_table(
+                f'{reply_text}\nמה תכריז?',
+                [
+                    (f'3{fit_suit}', '8-9 סה״כ'),
+                    (f'4{fit_suit}', '10+ סה״כ'),
+                ]
+            )
         else:
-            hint = f'אין התאמה במיגור.\nיש {h} נקודות\n8-9 → 2NT  |  10+ → 3NT'
-        self.app.set_instruction(f'מחשב ענה {r} ({reply_text}).\n{hint}')
+            self.app.set_instruction_table(
+                f'{reply_text}\nמה תכריז?',
+                [
+                    ('2NT', '8-9'),
+                    ('3NT', '10+'),
+                ]
+            )
         self.app.bidding_box.set_last_bid(self._stayman_reply)
 
     def _has_fit(self):
@@ -160,7 +169,9 @@ class LessonStayman(BaseLesson):
     def _shortage_pts(self):
         sym = self._fit_suit()
         trump_key = 'H' if sym == '♥' else 'S'
-        d = distribution(self.hands['S'])
+        hand = self.hands['S']
+        d = distribution(hand)
+        honors = {'A', 'K', 'Q', 'J'}
         pts = 0
         for suit, length in d.items():
             if suit == trump_key:
@@ -168,42 +179,39 @@ class LessonStayman(BaseLesson):
             if length == 0:
                 pts += 3
             elif length == 1:
-                pts += 2
+                has_honor = any(card_rank(c) in honors for c in hand if card_suit(c) == suit)
+                if not has_honor:
+                    pts += 2
         return pts
 
     def _handle_stayman_cont(self, bid):
         correct = self._calc_stayman_cont()
-        h = hcp(self.hands['S'])
+        extra = self._shortage_pts() if self._has_fit() else 0
         if bid == correct:
-            self.app.auction_widget.add_bid(bid, highlight=True)  # S
-            self.app.auction_widget.add_bid('Pass')               # W
-            self.app.auction_widget.add_bid('Pass')               # N
-            self.app.auction_widget.add_bid('Pass')               # E
-            self._finish(msg_correct_final(bid), ok=True)
+            self._close_stayman_cont(bid, self._correct_message(bid, extra_pts=extra), ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self.app.auction_widget.add_bid('Pass')               # N
-                self.app.auction_widget.add_bid('Pass')               # E
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self.app.auction_widget.add_bid('Pass')               # N
-                self.app.auction_widget.add_bid('Pass')               # E
-                if self._has_fit():
-                    shortage = self._shortage_pts()
-                    total = h + shortage
-                    self._finish(
-                        f'✗ בחרת {bid}.\nיש {h} נקודות גבוהות\nיש {shortage} נקודות חוסר\nסה״כ {total}.\nהנכון: {correct}.', ok=False)
-                else:
-                    self._finish(f'✗ בחרת {bid}.\nיש {h} נקודות.\nהנכון: {correct}.', ok=False)
+                self.app.auction_widget.add_bid(bid, highlight=True)
+                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct, extra_pts=extra)}', ok=False)
+
+    def _close_stayman_cont(self, bid, message, ok):
+        self.app.auction_widget.add_bid(bid, highlight=True)  # S
+        self.app.auction_widget.add_bid('Pass')               # W
+        if bid in ('2NT', '3♥', '3♠'):
+            from engine.rebid import opener_rebid
+            north_bid, _ = opener_rebid(self.hands['N'], '1NT', bid)
+            self.app.auction_widget.add_bid(north_bid)  # N
+            self.app.auction_widget.add_bid('Pass')     # E
+            if north_bid != 'Pass':
+                self._start_closing(message, ok=ok)
+                return
+        else:
+            self.app.auction_widget.add_bid('Pass')  # N
+            self.app.auction_widget.add_bid('Pass')  # E
+        self._finish(message, ok=ok)
 
     def _calc_stayman_cont(self):
         h = hcp(self.hands['S'])

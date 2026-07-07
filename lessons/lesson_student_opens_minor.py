@@ -1,6 +1,5 @@
 import random
 from lessons.base import BaseLesson
-from utils.messages import msg_retry, msg_chose_wrong, msg_correct
 from engine.deal_constraints import deal_student_opens_minor
 from engine.response import respond_minor
 from engine.rebid import opener_rebid
@@ -33,11 +32,11 @@ _FIXED_RULES = [
     ('1♣', 'מינור מאולץ (18 נק\' מאוזן)',
      'יש 18 נקודות מאוזן. חזק מדי ל-1NT (15-17).\nאין 5 קלפי מיגור, 3-3 במינורים.\nפותחים 1♣ ומתכוונים להכריז 2NT בסיבוב הבא.'),
     ('1♦', 'נמוכה מ-2 רביעיות',
-     'יש לך 4♥ ו-4♦. שתי רביעיות.\nפותחים בנמוכה מביניהן: ♦ נמוכה מ-♥.'),
+     'יש לך 4♥ ו-4♦. שתי רביעיות.\nפותחים בנמוכה מביניהן. ♦ נמוכה מ-♥.'),
     ('1♣', 'מינור מאולץ (4♥, אין 5 מיגור)',
      'יש לך 4♥ אבל אין 5 קלפי מיגור לפתיחה.\n3-3 במינורים. פותחים 1♣ (הנמוך).'),
     ('1NT', 'יד מאוזנת 15-17 נקודות',
-     'יש 17 נקודות מאוזן (4-4-3-2).\nזוהי פתיחת 1NT. לא מינור!'),
+     'יש 17 נקודות מאוזן (4-4-3-2).\nזוהי פתיחת 1NT. לא מינור'),
 ]
 
 
@@ -77,7 +76,7 @@ def _opening_rule(hand):
             if d[other] >= 5:
                 return (f'1{sym}',
                         'גבוהה מ-2 חמישיות',
-                        f'יש לך 5{sym} ו-5{osym}. פותחים בגבוהה מביניהן: {sym}.')
+                        f'יש לך 5{sym} ו-5{osym}. פותחים בגבוהה מביניהן {sym}.')
             return (f'1{sym}',
                     'סדרה ארוכה ביותר',
                     f'יש לך {d[suit]} קלפי {sym}. פותחים בסדרה הארוכה.')
@@ -109,10 +108,10 @@ def _opening_rule(hand):
     if dc == dd:
         if dc >= 5:
             return (bid, 'גבוהה מ-2 חמישיות',
-                    f'יש לך {dd} קלפי ♦ ו-{dc} קלפי ♣. פותחים בגבוהה: {bid}.')
+                    f'יש לך {dd} קלפי ♦ ו-{dc} קלפי ♣. פותחים בגבוהה {bid}.')
         return (bid, 'נמוכה מ-2 רביעיות',
                 f'יש לך {dd} קלפי ♦ ו-{dc} קלפי ♣. שוות אורך.\n'
-                f'פותחים בנמוכה מביניהן: {bid}.')
+                f'פותחים בנמוכה מביניהן {bid}.')
 
     # סדרה ארוכה. רק אם המינור הוא בדיוק 4 קלפים (כמו המיגור) → "שתי רביעיות"
     longer = dc if bid == '1♣' else dd
@@ -120,7 +119,7 @@ def _opening_rule(hand):
         maj = '♥' if d['H'] == 4 else '♠'
         return (bid, 'נמוכה מ-2 רביעיות',
                 f'יש לך 4{maj} ו-4 קלפי {sym}. שתי רביעיות.\n'
-                f'פותחים בנמוכה: {sym} נמוכה מ-{maj}.')
+                f'פותחים בנמוכה. {sym} נמוכה מ-{maj}.')
     return (bid, 'סדרה ארוכה ביותר',
             f'יש לך {longer} קלפי {sym}. הסדרה הארוכה ביותר.')
 
@@ -129,6 +128,21 @@ class LessonStudentOpensMinor(BaseLesson):
     """תלמיד (S) פותח מינור (או 1NT), מחשב (N) עונה. עם 5 ידיים קבועות ראשונות"""
 
     _deal_count = 0
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonStudentOpensMinor
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _correct_message(self, final):
+        h = hcp(self.hands['S'])
+        return (f'{self._next_opener()}\n'
+                f'יש לך {h} נקודות\n'
+                f'ההכרזה הנכונה\n'
+                f'{final}')
 
     def start(self):
         LessonStudentOpensMinor._deal_count += 1
@@ -167,7 +181,7 @@ class LessonStudentOpensMinor(BaseLesson):
         ]
         # ידיים ראשונות. מראים כלל
         if self._fixed_idx is not None or LessonStudentOpensMinor._deal_count <= 8:
-            lines.append(f'כלל: {rule}.')
+            lines.append(f'כלל\n{rule}')
         self.app.set_instruction('\n'.join(lines))
 
     # ── שלב 1: תלמיד פותח ─────────────────────────────────────────────────
@@ -180,9 +194,7 @@ class LessonStudentOpensMinor(BaseLesson):
 
     def _handle_open(self, bid):
         s = self.hands['S']
-        h = hcp(s)
-        d = distribution(s)
-        correct, rule, expl = _opening_rule(s)
+        correct, _, _ = _opening_rule(s)
 
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -203,50 +215,32 @@ class LessonStudentOpensMinor(BaseLesson):
             self.app.auction_widget.add_bid(north_bid)             # N
             self.app.auction_widget.add_bid('Pass')                # E
 
-            # הסבר הפתיחה
-            open_why = expl
-
             if north_bid in ('3NT', '4♥', '4♠', '5♣', '5♦') or correct == '1NT':
-                self._finish(
-                    f'נכון! {open_why}\n\n'
-                    f'מחשב ענה {north_bid}.\n\n'
-                    f'חוזה סופי: {north_bid}.', ok=True)
+                self._finish(self._correct_message(north_bid), ok=True)
             else:
                 self._stage = 'rebid'
                 self._tries = 0
                 self.app.bidding_box.set_last_bid(north_bid)
                 self._set_rebid_instruction(north_bid)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
             if self._tries < 2:
-                _, rule, expl = _opening_rule(s)
                 self._last_wrong_bid = bid
                 self.app.bidding_box.reset()
-                self.app.set_feedback(
-                    f'לא נכון. כלל: {rule}.\nנסה שוב.', ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(
-                    f'בחרת {bid}.\n{expl}\n\nההכרזה הנכונה: {correct}.',
-                    ok=False)
+                self._finish(self._explain_open_wrong(correct), ok=False)
 
     # ── שלב 2: תלמיד עושה חזרה ─────────────────────────────────────────────
 
     def _set_rebid_instruction(self, north_bid):
         rows = self._rebid_rows(north_bid)
         if rows:
-            self.app.set_instruction_table(
-                f'מחשב ענה {north_bid}. מה תכריז?', rows)
+            self.app.set_instruction_table('מה תכריז?', rows)
         else:
             h_s = hcp(self.hands['S'])
             self.app.set_instruction(
@@ -312,93 +306,27 @@ class LessonStudentOpensMinor(BaseLesson):
             self.app.auction_widget.add_bid('Pass')
             self.app.auction_widget.add_bid('Pass')
             final = self._north_bid if bid == 'Pass' else bid
-            self._finish(msg_correct(why, final), ok=True)
+            self._finish(self._correct_message(final), ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                final = self._north_bid if bid == 'Pass' else bid
-                self._finish(f'חוזה סופי: {final}. הנכון: {correct}.', ok=False)
-                return
             self._tries += 1
             if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.set_last_bid(self._north_bid)
-                h_s = hcp(self.hands['S'])
-                self.app.set_feedback(
-                    f'יש לך {h_s} נקודות.\nנסה שוב.', ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                expl = self._explain_rebid_wrong(bid, correct)
-                self._finish(
-                    f'בחרת {bid}.\n{expl}\nההכרזה הנכונה: {correct}.',
-                    ok=False)
+                self._finish(self._explain_rebid_wrong(correct), ok=False)
 
-    def _explain_rebid_wrong(self, bid, correct):
-        h   = hcp(self.hands['S'])
-        d   = distribution(self.hands['S'])
-        sym = _S.get(getattr(self, '_minor', 'C'), '♣')
-        nb  = self._north_bid
+    def _explain_rebid_wrong(self, correct):
+        h = hcp(self.hands['S'])
+        return f'יש לך {h} נקודות\nההכרזה הנכונה\n{correct}'
 
-        if nb == '1NT':
-            if correct == 'Pass':
-                return (f'יש לך {h} נקודות. שותף ענה 1NT (6-9). '
-                        f'עם 12-14. מינימום. פס.')
-            if correct == '2NT':
-                return (f'יש לך {h} נקודות. עם 15-17. מזמינים ל-3NT על ידי 2NT.')
-            if correct == '3NT':
-                return (f'יש לך {h} נקודות. עם 18+. קופצים ישר ל-3NT.')
-
-        if nb == '2NT':
-            if correct == '3NT':
-                return (f'יש לך {h} נקודות. שותף הזמין 2NT. עם 15+. מקבלים → 3NT.')
-            if correct == 'Pass':
-                return (f'יש לך {h} נקודות. שותף הזמין 2NT. עם 12-14. דוחים → פס.')
-
-        if nb == f'2{sym}':
-            if correct == 'Pass':
-                return (f'יש לך {h} נקודות. שותף תמך ב-2{sym}. עם 12-14. פס.')
-            if correct == f'3{sym}':
-                return (f'יש לך {h} נקודות. שותף תמך. עם 15-17. מזמינים ל-3NT.')
-            if correct == '3NT':
-                return (f'יש לך {h} נקודות. שותף תמך. עם 18+. קופצים ל-3NT.')
-
-        if nb == f'3{sym}':
-            if correct == '3NT':
-                return (f'יש לך {h} נקודות. שותף הזמין {nb}. עם 15+. מקבלים → 3NT.')
-            if correct == 'Pass':
-                return (f'יש לך {h} נקודות. שותף הזמין {nb}. עם 12-14. דוחים → פס.')
-
-        for major_bid, msuit in [('1♥','H'),('1♠','S')]:
-            if nb == major_bid:
-                msym = _S[msuit]
-                fit  = d.get(msuit, 0)
-                if fit >= 4:
-                    lvl_b = int(bid[0]) if bid[0].isdigit() else 0
-                    lvl_c = int(correct[0]) if correct[0].isdigit() else 0
-                    if lvl_b < lvl_c:
-                        return (f'יש לך {h} נקודות ו-{fit} {msym}. '
-                                f'{bid} חלשה מדי. עם {h} נקודות ההכרזה הנכונה: {correct}.')
-                    if lvl_b > lvl_c:
-                        return (f'יש לך {h} נקודות. '
-                                f'{bid} חזקה מדי. עם {h} נקודות ההכרזה הנכונה: {correct}.')
-
-        if nb == '1♦' and getattr(self, '_minor', '') == 'C':
-            if correct == '2♦':
-                return (f'יש לך {d["D"]} קלפי ♦. עם 4+ קלפי ♦. תומכים ב-2♦.')
-            if correct == '2♣':
-                return (f'יש לך {d["C"]} קלפי ♣. עם 5+ קלפי ♣. מכריזים 2♣.')
-            if correct == '1NT':
-                return (f'יש לך {h} נקודות מאוזן. עם 12-14. מכריזים 1NT.')
-            if correct == '2NT':
-                return (f'יש לך {h} נקודות. עם 18-19. מכריזים 2NT.')
-
-        return f'יש לך {h} נקודות. ההכרזה הנכונה: {correct}.'
+    def _explain_open_wrong(self, correct):
+        h = hcp(self.hands['S'])
+        return f'יש לך {h} נקודות\nההכרזה הנכונה\n{correct}'
 
     # ── סיום ───────────────────────────────────────────────────────────────
 

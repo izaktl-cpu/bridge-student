@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from engine.cards import SUITS, SUIT_SYMBOLS, SUIT_COLORS, hand_by_suit, fmt_suit_cards
 from engine.scoring import hcp as _hcp
-from utils.fonts import F, FB
+from utils.fonts import F, FB, FB_FEEDBACK
 from utils.rtl import fix
 
 TABLE_GREEN = '#1e5c1e'
@@ -82,15 +82,15 @@ class BridgeTable(ctk.CTkFrame):
         self._panels['S'] = PlayerPanel(self, 'South ★')
         self._panels['S'].grid(row=2, column=1, padx=(4, 8), pady=1, sticky='new')
 
-        # פינה ימין תחתונה — משוב
+        # פינה ימין תחתונה — משוב קצר
         self._feedback_lbl = ctk.CTkLabel(
             self, text='',
-            font=F(17),
+            font=FB_FEEDBACK(18),
             text_color='white',
             fg_color='transparent',
-            wraplength=0,
-            justify='right',
-            anchor='n')
+            wraplength=180,
+            justify='center',
+            anchor='center')
         self._feedback_lbl.grid(row=2, column=2, padx=3, pady=3, sticky='nsew')
 
         # Compass
@@ -103,8 +103,22 @@ class BridgeTable(ctk.CTkFrame):
         ctk.CTkLabel(compass, text='S', font=cf, text_color='white').grid(row=2, column=1, padx=4)
 
     def set_feedback(self, text, ok=True):
+        _BIDI = str.maketrans('', '', '‪‫‬‭‮‎‏')
+        def clean(s):
+            return '\n'.join(l.translate(_BIDI).rstrip(' .,-–—') for l in s.split('\n') if l.strip())
+        if ok:
+            label = 'נכון'
+        else:
+            body = clean(text) if text else ''
+            # פידבק שגוי — להשאיר רק מ"ההכרזה הנכונה" והלאה, בלי שורות הסבר
+            lines = body.split('\n')
+            for i, ln in enumerate(lines):
+                if 'ההכרזה הנכונה' in ln:
+                    body = '\n'.join(lines[i:])
+                    break
+            label = 'לא נכון' + ('\n' + body if body else '')
         color = '#90ee90' if ok else '#ffaaaa'
-        self._feedback_lbl.configure(text=fix(text), text_color=color)
+        self._feedback_lbl.configure(text=label, text_color=color)
 
     def clear_feedback(self):
         self._feedback_lbl.configure(text='')

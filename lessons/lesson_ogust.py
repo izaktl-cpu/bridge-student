@@ -3,9 +3,10 @@ from lessons.base import BaseLesson
 from engine.deal_constraints import deal_ogust
 from engine.scoring import hcp, sure_tricks, suit_len
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry
-
+from utils.messages import tricks
 _S = SUIT_SYMBOLS
+
+_FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
 
 _EXPLAIN = {
     '3♣':  '6–7 נקודות. מפוזרות',
@@ -32,6 +33,13 @@ class LessonOgust(BaseLesson):
     """שיעור 11: S פותח Weak Two, מחשב שואל 2NT, S עונה אוגוסט, N מסכם"""
 
     TITLE = 'שיעור 11. Ogust'
+    _opener_idx = 0
+
+    def _next_opener(self):
+        cls = LessonOgust
+        word = _FEEDBACK_OPENERS[cls._opener_idx % len(_FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
 
     # ─── start ───────────────────────────────────────────────────────────────
 
@@ -53,7 +61,7 @@ class LessonOgust(BaseLesson):
 
         self.app.bidding_box.set_last_bid(None)
         self.app.set_instruction_table(
-            f'יש לך 6 קלפי {sym} ו-{h} נקודות. פתח!',
+            f'יש לך 6 קלפי {sym} ו-{h} נקודות. פתח',
             [
                 (f'2{sym}', f'6 קלפים + 6–9 נקודות. Weak Two'),
             ]
@@ -87,13 +95,13 @@ class LessonOgust(BaseLesson):
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
-                self._finish(f'הנכון: {correct}.', ok=False, correct_answer=correct)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False, correct_answer=correct)
 
     def _show_respond_instruction(self):
         sym = _S[self._major]
@@ -125,19 +133,13 @@ class LessonOgust(BaseLesson):
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
-                # מקבל את הכרזת התלמיד, שומר שגיאה לסוף
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
-                self._tries = 0
-                self._ogust_bid     = bid
-                self._ogust_wrong   = True
-                self._ogust_correct = correct
-                self._stage = 'north'
-                self.app.table.show_hands(self.hands, visible=('S', 'N'))
-                self.app.bidding_box.set_last_bid(bid)
-                self._show_north_instruction(bid)
+                self.app.auction_widget.add_bid('Pass')
+                self.app.auction_widget.add_bid('Pass')
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     # ─── stage 3: החלטת N ────────────────────────────────────────────────────
 
@@ -182,31 +184,18 @@ class LessonOgust(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # W
             et = self._effective_tricks(self._ogust_bid)
             self._finish(
-                f'✓ נכון! {bid}.\n'
-                f'שותף ענה {self._ogust_bid} — {_EXPLAIN[self._ogust_bid]}\n'
-                f'יש לך {et} לקיחות.'
+                f'{self._next_opener()}\n'
+                f'שותף ענה {self._ogust_bid}. {_EXPLAIN[self._ogust_bid]}\n'
+                f'יש לך {tricks(et)}\n'
+                f'ההכרזה הנכונה\n{bid}'
                 + self._ogust_note(),
-                ok=True
+                ok=not self._ogust_wrong
             )
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                et = self._effective_tricks(self._ogust_bid)
-                self._finish(
-                    f'הנכון: {correct}.\n'
-                    f'שותף ענה {self._ogust_bid} — {_EXPLAIN[self._ogust_bid]}\n'
-                    f'יש לך {et} לקיחות.'
-                    + self._ogust_note(),
-                    ok=False
-                )
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
@@ -214,9 +203,9 @@ class LessonOgust(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 et = self._effective_tricks(self._ogust_bid)
                 self._finish(
-                    f'הנכון: {correct}.\n'
-                    f'שותף ענה {self._ogust_bid} — {_EXPLAIN[self._ogust_bid]}\n'
-                    f'יש לך {et} לקיחות.'
+                    f'שותף ענה {self._ogust_bid}. {_EXPLAIN[self._ogust_bid]}\n'
+                    f'יש לך {tricks(et)}\n'
+                    f'ההכרזה הנכונה\n{correct}'
                     + self._ogust_note(),
                     ok=False, correct_answer=correct
                 )
@@ -224,7 +213,7 @@ class LessonOgust(BaseLesson):
     def _ogust_note(self):
         if not self._ogust_wrong:
             return ''
-        return f'\nגם באוגוסט טעית — הנכון: {self._ogust_correct}.'
+        return f'\nגם באוגוסט טעית\nההכרזה הנכונה שם\n{self._ogust_correct}'
 
     # ─── helpers ─────────────────────────────────────────────────────────────
 

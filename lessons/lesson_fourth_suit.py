@@ -9,7 +9,7 @@ from engine.fourth_suit import (
 )
 from engine.scoring import hcp, has_stopper
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong
+from utils.messages import msg_retry
 
 _S = SUIT_SYMBOLS
 _SYM = {'♣': 'C', '♦': 'D', '♥': 'H', '♠': 'S'}
@@ -101,7 +101,7 @@ class LessonFourthSuit(BaseLesson):
             s_sym    = _CODE[cfg['s_suit']]
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\nשותף פתח {self._n_bid}. מה תכריז?',
+                f'{eval_txt}\nמה תכריז?',
                 [(cfg['s_response'], f'4+ קלפי {s_sym}. כריזת צבע חדש')]
             )
 
@@ -112,7 +112,7 @@ class LessonFourthSuit(BaseLesson):
             self._stage = 'response'
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\nשותף פתח {self._n_bid}. מה תכריז?',
+                f'{eval_txt}\nמה תכריז?',
                 [('2♦', '6-10 נק׳, 5+ קלפי ♦. תמיכה חלשה')]
             )
 
@@ -152,10 +152,9 @@ class LessonFourthSuit(BaseLesson):
 
             _, fsym, _ = compute_fourth_suit(
                 self._n_bid, self._s_bid1, self._n_rebid)
-            auction_txt = f'{self._n_bid}-{bid}-{self._n_rebid}'
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
-                f'{eval_txt}\n{auction_txt}. מה תכריז?',
+                f'{eval_txt}\nמה תכריז?',
                 [
                     (f'{self._correct_fsf}',
                      f'11+ נק׳, שואל עוצר ב-{fsym}\n(צבע רביעי. לא טבעי!)'),
@@ -165,15 +164,8 @@ class LessonFourthSuit(BaseLesson):
             )
         else:
             s_sym = _CODE[self._s_suit]
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(f'נסה שוב. רמז: יש לך 4+ קלפי {s_sym}.', ok=False)
             else:
@@ -182,7 +174,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'בחרת {bid}\nהנכון: {correct}. יש לך 4+ קלפי {s_sym}',
+                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. יש לך 4+ קלפי {s_sym}',
                     ok=False, correct_answer=correct)
 
     # ── FSF שלב 1: הכרזת FSF ─────────────────────────────────────────────
@@ -212,9 +204,9 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')  # S
                 self.app.auction_widget.add_bid('Pass')  # W
                 self._finish(
-                    f'נכון! הכרזת {bid}\n'
+                    f'נכון. הכרזת {bid}\n'
                     f'צבע רביעי. שואל עוצר ב-{fsym}, לא טבעי\n'
-                    f'שותף: {n_resp}. {n_why}\nמשחק מלא!',
+                    f'שותף {n_resp}. {n_why}\nמשחק מלא',
                     ok=True)
                 return
 
@@ -227,15 +219,8 @@ class LessonFourthSuit(BaseLesson):
             self._show_final_instruction(n_resp, fsym)
 
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 2:
                 self._last_wrong_bid = bid
                 _, fsym, _ = compute_fourth_suit(
                     self._n_bid, self._s_bid1, self._n_rebid)
@@ -249,7 +234,7 @@ class LessonFourthSuit(BaseLesson):
                 _, fsym, _ = compute_fourth_suit(
                     self._n_bid, self._s_bid1, self._n_rebid)
                 self._finish(
-                    f'בחרת {bid}\n'
+                    f'טעית בפעם השנייה.\nבחרת {bid}\n'
                     f'הנכון: {correct}. צבע רביעי, שואל עוצר ב-{fsym}\n'
                     f'{self._fsf_expl}',
                     ok=False, correct_answer=correct)
@@ -276,15 +261,8 @@ class LessonFourthSuit(BaseLesson):
                 f'הכרזתך: {bid}',
                 ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
@@ -294,7 +272,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 _, expl = s_final_bid(self.hands['S'], n_resp, self._s_suit, self._opener_suit)
                 self._finish(
-                    f'בחרת {bid}\nהנכון: {correct}. {expl}',
+                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. {expl}',
                     ok=False, correct_answer=correct)
 
     # ── Stopper Ask שלב 0: תמיכה 2♦ ─────────────────────────────────────
@@ -316,22 +294,15 @@ class LessonFourthSuit(BaseLesson):
             eval_txt = _hand_eval(self.hands['S'])
             self.app.set_instruction_table(
                 f'{eval_txt}\n'
-                f'שותף שאל עוצר ב-{self._ask_sym}. מה תכריז?',
+                f'שאלת עוצר ב-{self._ask_sym}\nמה תכריז?',
                 [
                     ('3NT', 'יש עוצר ♥. 3NT'),
                     ('4♦',  'אין עוצר ♥. חוזרים ל-♦'),
                 ]
             )
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(
                     f'נסה שוב. רמז: עם 6-10 נק׳ ו-5+ קלפי ♦. תמיכה חלשה.',
@@ -342,7 +313,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'בחרת {bid}\nהנכון: {correct}. 6-10 נק׳, 5+ קלפי ♦',
+                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. 6-10 נק׳, 5+ קלפי ♦',
                     ok=False, correct_answer=correct)
 
     # ── Stopper Ask שלב 1: תגובה לשאלת עוצר ─────────────────────────────
@@ -382,15 +353,8 @@ class LessonFourthSuit(BaseLesson):
                     f'אין עוצר ♥. שותף מכריז {n_final} ({expl})',
                     ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid('Pass')
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 2:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(
                     f'נסה שוב. רמז: יש לך עוצר ב-{self._ask_sym}? אם לא. חזור ל-♦.',
@@ -401,7 +365,7 @@ class LessonFourthSuit(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
                 self._finish(
-                    f'בחרת {bid}\nהנכון: {correct}. {self._stopper_expl}',
+                    f'טעית בפעם השנייה.\nבחרת {bid}\nהנכון: {correct}. {self._stopper_expl}',
                     ok=False, correct_answer=correct)
 
     # ── FSF עזרים ────────────────────────────────────────────────────────

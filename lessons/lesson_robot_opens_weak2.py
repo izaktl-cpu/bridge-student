@@ -3,7 +3,7 @@ from lessons.base import BaseLesson
 from engine.deal_constraints import deal_weak_two
 from engine.scoring import sure_tricks, suit_len, has_stopper
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry
+from utils.messages import high_tricks
 
 _S = SUIT_SYMBOLS
 
@@ -12,6 +12,22 @@ class LessonRobotOpensWeak2(BaseLesson):
     """שיעור 10: מחשב (N) פותח Weak Two (2♥/2♠), תלמיד (S) עונה"""
 
     TITLE = 'שיעור 10. Weak Two'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonRobotOpensWeak2
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _correct_message(self, final):
+        st = sure_tricks(self.hands['S'])
+        return f'{self._next_opener()}\nיש {high_tricks(st)}\nההכרזה הנכונה\n{final}'
+
+    def _wrong_message(self, correct):
+        st = sure_tricks(self.hands['S'])
+        return f'יש {high_tricks(st)}\nההכרזה הנכונה\n{correct}'
 
     def start(self):
         if not self._replaying:
@@ -54,27 +70,18 @@ class LessonRobotOpensWeak2(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # W
             self.app.auction_widget.add_bid('Pass')               # N
             self.app.auction_widget.add_bid('Pass')               # E
-            self._finish(self._ok_message(correct), ok=True)
+            self._finish(self._correct_message(correct), ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self.app.auction_widget.add_bid('Pass')  # W
-                self.app.auction_widget.add_bid('Pass')  # N
-                self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(self._ok_message(bid), ok=False)
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')  # W
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(
-                    f'הנכון: {correct}.\n{self._why(correct)}\n\n{self._ok_message(bid)}',
-                    ok=False, correct_answer=correct)
+                self._finish(self._wrong_message(correct), ok=False)
 
     def _calc_response(self):
         s   = self.hands['S']
@@ -95,42 +102,6 @@ class LessonRobotOpensWeak2(BaseLesson):
         if st == 3 and fit:
             return f'3{sym}'
         return 'Pass'
-
-    def _ok_message(self, correct):
-        s           = self.hands['S']
-        sym         = _S[self._major]
-        other_major = 'H' if self._major == 'S' else 'S'
-        other_sym   = _S[other_major]
-        st          = sure_tricks(s)
-        fit         = suit_len(s, self._major)
-        other_len   = suit_len(s, other_major)
-        if correct == f'4{sym}':
-            return f'✓ נכון! משחק מלא.\nיש {st} לקיחות גבוהות\nיש {fit} קלפי {sym}.'
-        if correct == f'4{other_sym}':
-            return f'✓ נכון! {other_len} קלפי {other_sym} + {st} לקיחות גבוהות → {correct}.'
-        if correct == '3NT':
-            return f'✓ נכון! 3NT.\nיש {st} לקיחות גבוהות + עוצרים בכל הסדרות.'
-        if correct == f'3{sym}':
-            return f'✓ נכון! הפרעה.\nיש 4 לקיחות גבוהות + {fit} קלפי {sym}.'
-        return f'✓ נכון! פס.\nרק {st} לקיחות גבוהות. לא מספיק.'
-
-    def _why(self, correct):
-        s           = self.hands['S']
-        sym         = _S[self._major]
-        other_major = 'H' if self._major == 'S' else 'S'
-        other_sym   = _S[other_major]
-        st          = sure_tricks(s)
-        fit         = suit_len(s, self._major)
-        other_len   = suit_len(s, other_major)
-        if correct == f'4{sym}':
-            return f'יש {st} לקיחות גבוהות ו-{fit} קלפי {sym} → משחק מלא.'
-        if correct == f'4{other_sym}':
-            return f'יש {other_len} קלפי {other_sym} + {st} לקיחות → {correct}.'
-        if correct == '3NT':
-            return f'יש {st} לקיחות גבוהות + עוצרים → 3NT.'
-        if correct == f'3{sym}':
-            return f'יש 4 לקיחות גבוהות ו-{fit} קלפי {sym} → הפרעה ל-3.'
-        return f'רק {st} לקיחות גבוהות. פס.'
 
     def _finish(self, message, ok, correct_answer=''):
         self._stage = 'done'

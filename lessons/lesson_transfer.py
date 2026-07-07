@@ -2,7 +2,6 @@ from lessons.base import BaseLesson
 from engine.deal_constraints import deal_robot_opens_1nt_transfer
 from engine.scoring import hcp, distribution
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong
 
 _S = SUIT_SYMBOLS
 
@@ -11,6 +10,30 @@ class LessonTransfer(BaseLesson):
     """שיעור 5: טרנספר לאחר פתיחת 1NT של המחשב"""
 
     TITLE = 'שיעור 5. טרנספר'
+    _opener_idx = 0
+    _FEEDBACK_OPENERS = ['כל הכבוד', 'נכון', 'מעולה']
+
+    def _next_opener(self):
+        cls = LessonTransfer
+        word = cls._FEEDBACK_OPENERS[cls._opener_idx % len(cls._FEEDBACK_OPENERS)]
+        cls._opener_idx += 1
+        return word
+
+    def _correct_message(self, final, extra_line=''):
+        h = hcp(self.hands['S'])
+        lines = [self._next_opener(), f'יש לך {h} נקודות']
+        if extra_line:
+            lines.append(extra_line)
+        lines += ['ההכרזה הנכונה', final]
+        return '\n'.join(lines)
+
+    def _wrong_message(self, correct, extra_line=''):
+        h = hcp(self.hands['S'])
+        lines = [f'יש לך {h} נקודות']
+        if extra_line:
+            lines.append(extra_line)
+        lines += ['ההכרזה הנכונה', correct]
+        return '\n'.join(lines)
 
     def start(self):
         if not self._replaying:
@@ -39,74 +62,62 @@ class LessonTransfer(BaseLesson):
     # ── שלב 1: טרנספר ─────────────────────────────────────────────────────
 
     def _handle_respond(self, bid):
-        correct, why = self._calc_correct_first_bid()
+        correct = self._calc_correct_first_bid()
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
             self.app.auction_widget.add_bid('Pass')               # W
-            self._execute_first_bid(bid, why)
+            self._execute_first_bid(bid, self._correct_message(bid))
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self._execute_first_bid(bid, '')
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
-                self.app.set_feedback(f'הנכון: {correct}.', ok=False)
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                self._execute_first_bid(bid, f'הנכון: {correct}.')
+                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
         d = distribution(self.hands['S'])
         if d['H'] >= 5:
-            return '2♦', f'יש {h} נקודות, {d["H"]} קלפי ♥. טרנספר ל-♥'
+            return '2♦'
         if d['S'] >= 5:
-            return '2♥', f'יש {h} נקודות, {d["S"]} קלפי ♠. טרנספר ל-♠'
+            return '2♥'
         if h <= 7:
-            return 'Pass', f'יש {h} נקודות. מכריזים פס'
+            return 'Pass'
         if h <= 9:
-            return '2NT', f'יש {h} נקודות. מזמינים ל-3NT'
-        return '3NT', f'יש {h} נקודות. מכריזים משחק מלא'
+            return '2NT'
+        return '3NT'
 
-    def _execute_first_bid(self, bid, why):
-        ok = not why.startswith('הנכון')
-        prefix = '✓ ' if ok else ''
+    def _execute_first_bid(self, bid, message):
         if bid == 'Pass':
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{prefix}{why}\nחוזה סופי: 1NT.', ok=ok)
+            self._finish(message, ok=True)
         elif bid == '2NT':
             from engine.rebid import opener_rebid
             north_bid, n_why = opener_rebid(self.hands['N'], '1NT', '2NT')
             self.app.auction_widget.add_bid(north_bid)  # N
             self.app.auction_widget.add_bid('Pass')     # E
-            final = '2NT' if north_bid == 'Pass' else north_bid
-            msg = f'{prefix}{why}\nמחשב: {north_bid}.\nחוזה סופי: {final}.'
             if north_bid != 'Pass':
-                self._start_closing(msg, ok=ok)
+                self._start_closing(message, ok=True)
             else:
-                self._finish(msg, ok=ok)
+                self._finish(message, ok=True)
         elif bid == '3NT':
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{prefix}{why}\nחוזה סופי: 3NT.', ok=ok)
+            self._finish(message, ok=True)
         elif bid == '2♦':
-            self._do_transfer('♥', why)
+            self._do_transfer('♥')
         elif bid == '2♥':
-            self._do_transfer('♠', why)
+            self._do_transfer('♠')
         else:
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
-            self._finish(f'{why}\nחוזה סופי: {bid}.', ok=False)
+            self._finish(message, ok=False)
 
     # ── שלב 2: אחרי השלמת הטרנספר ────────────────────────────────────────
 
-    def _do_transfer(self, target_sym, why):
+    def _do_transfer(self, target_sym):
         self._transfer_sym = target_sym
         response_bid = '2♥' if target_sym == '♥' else '2♠'
 
@@ -120,7 +131,7 @@ class LessonTransfer(BaseLesson):
         key = 'H' if target_sym == '♥' else 'S'
         suit_len = distribution(self.hands['S'])[key]
         self.app.set_instruction_table(
-            f'מחשב ענה {response_bid}. טרנספר הושלם.\nיש {suit_len} קלפי {target_sym} ו-{h} נקודות. מה תכריז?',
+            f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז?',
             [
                 ('Pass',              '0-7 נקודות'),
                 ('2NT',               f'8-9 נקודות, 5 קלפי {target_sym} בדיוק'),
@@ -145,7 +156,6 @@ class LessonTransfer(BaseLesson):
 
     def _handle_transfer_cont(self, bid):
         correct = self._calc_transfer_cont()
-        h = hcp(self.hands['S'])
         sym = self._transfer_sym
         key = 'H' if sym == '♥' else 'S'
         suit_len = distribution(self.hands['S'])[key]
@@ -156,125 +166,84 @@ class LessonTransfer(BaseLesson):
             if bid == 'Pass':
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(f'✓ נכון!\nיש {h} נקודות. פס.\nחוזה סופי: 2{sym}.', ok=True)
+                self._finish(self._correct_message(f'2{sym}'), ok=True)
             elif bid == f'4{sym}':
                 self.app.auction_widget.add_bid('Pass')  # N
                 self.app.auction_widget.add_bid('Pass')  # E
-                self._finish(f'✓ נכון!\nיש {h} נקודות\nיש {suit_len} קלפי {sym}. יש משחק מלא.\nחוזה סופי: 4{sym}.', ok=True)
+                self._finish(self._correct_message(f'4{sym}', extra_line=f'יש {suit_len} קלפי {sym}'), ok=True)
             elif bid == f'3{sym}':
-                self._after_3m()
+                self._after_3m(correct, ok=True)
             elif bid == '2NT':
-                self._after_2nt()
+                self._after_2nt(correct, ok=True)
             elif bid == '3NT':
-                self._after_3nt()
+                self._after_3nt(correct, ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                if bid == f'3{sym}':
-                    self._after_3m(ok=False, prefix=f'בחרת {bid}.')
-                elif bid == '2NT':
-                    self._after_2nt(ok=False, prefix=f'בחרת {bid}.')
-                elif bid == '3NT':
-                    self._after_3nt(ok=False, prefix=f'בחרת {bid}.')
-                else:
-                    self.app.auction_widget.add_bid('Pass')  # N
-                    self.app.auction_widget.add_bid('Pass')  # E
-                    self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
-            if self._tries == 1:
-                self._last_wrong_bid = bid
-                self.app.set_feedback(msg_retry(), ok=False)
+            if self._tries < 2:
+                self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
-                self.app.auction_widget.add_bid('Pass')               # W
-                expl = self._explain_wrong(bid, correct, h, suit_len, sym)
-                if bid == f'3{sym}':
-                    self._after_3m(ok=False, prefix=expl)
-                elif bid == '2NT':
-                    self._after_2nt(ok=False, prefix=expl)
-                elif bid == '3NT':
-                    self._after_3nt(ok=False, prefix=expl)
-                else:
-                    self.app.auction_widget.add_bid('Pass')  # N
-                    self.app.auction_widget.add_bid('Pass')  # E
-                    self._finish(expl, ok=False)
+                self._finish(f'טעית בפעם השנייה.\n{self._wrong_message(correct)}', ok=False)
 
     # ── תגובות N ──────────────────────────────────────────────────────────
 
-    def _after_2nt(self, ok=True, prefix=''):
+    def _after_2nt(self, correct, ok=True):
         """S הכריז 2NT. 8-9 נקודות, 5 קלפים."""
         sym = self._transfer_sym
         key = 'H' if sym == '♥' else 'S'
         north_fit = distribution(self.hands['N'])[key]
-        h = hcp(self.hands['S'])
         hn = hcp(self.hands['N'])
-        base = prefix or f'✓ נכון!\nיש {h} נקודות\nיש 5 קלפי {sym}.'
+        fit_line = f'יש 5 קלפי {sym}'
+        msg_fn = self._correct_message if ok else self._wrong_message
         if hn <= 16:
-            # 15-16. מסרב
             self.app.auction_widget.add_bid('Pass')      # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._finish(f'{base}\nמחשב יש לו {hn} נקודות. מסרב.\nחוזה סופי: 2NT.', ok=ok)
+            self._finish(msg_fn(correct if not ok else '2NT', extra_line=fit_line), ok=ok)
         elif north_fit >= 3:
             north_bid = f'4{sym}'
             self.app.auction_widget.add_bid(north_bid)  # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._start_closing(f'{base}\nמחשב יש לו {north_fit} קלפי {sym}. מקבל: {north_bid}.\nחוזה סופי: {north_bid}.', ok=ok)
+            self._start_closing(msg_fn(correct if not ok else north_bid, extra_line=fit_line), ok=ok)
         else:
             self.app.auction_widget.add_bid('3NT')       # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._start_closing(f'{base}\nמחשב יש לו {hn} נקודות. מקבל: 3NT.\nחוזה סופי: 3NT.', ok=ok)
+            self._start_closing(msg_fn(correct if not ok else '3NT', extra_line=fit_line), ok=ok)
 
-    def _after_3m(self, ok=True, prefix=''):
+    def _after_3m(self, correct, ok=True):
         """S הכריז 3M. 8-9 נקודות, 6+ קלפים."""
         sym = self._transfer_sym
         key = 'H' if sym == '♥' else 'S'
         north_fit = distribution(self.hands['N'])[key]
-        h = hcp(self.hands['S'])
         hn = hcp(self.hands['N'])
         suit_len = distribution(self.hands['S'])[key]
-        base = prefix or f'✓ נכון!\nיש {h} נקודות\nיש {suit_len} קלפי {sym}.'
+        fit_line = f'יש {suit_len} קלפי {sym}'
+        msg_fn = self._correct_message if ok else self._wrong_message
         if hn >= 17 and north_fit >= 3:
             north_bid = f'4{sym}'
             self.app.auction_widget.add_bid(north_bid)  # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._start_closing(f'{base}\nמחשב יש לו {north_fit} קלפי {sym}. מקבל: {north_bid}.\nחוזה סופי: {north_bid}.', ok=ok)
+            self._start_closing(msg_fn(correct if not ok else north_bid, extra_line=fit_line), ok=ok)
         else:
             self.app.auction_widget.add_bid('Pass')      # N
             self.app.auction_widget.add_bid('Pass')      # E
-            reason = f'יש לו {hn} נקודות' if hn <= 16 else f'יש לו {north_fit} קלפי {sym} בלבד'
-            self._finish(f'{base}\nמחשב {reason}. מסרב.\nחוזה סופי: 3{sym}.', ok=ok)
+            self._finish(msg_fn(correct if not ok else f'3{sym}', extra_line=fit_line), ok=ok)
 
-    def _after_3nt(self, ok=True, prefix=''):
+    def _after_3nt(self, correct, ok=True):
         """S הכריז 3NT. 10+ נקודות, 5 קלפים."""
         sym = self._transfer_sym
         key = 'H' if sym == '♥' else 'S'
         north_fit = distribution(self.hands['N'])[key]
-        h = hcp(self.hands['S'])
-        base = prefix or f'✓ נכון!\nיש {h} נקודות\nיש 5 קלפי {sym}.'
+        fit_line = f'יש 5 קלפי {sym}'
+        msg_fn = self._correct_message if ok else self._wrong_message
         if north_fit >= 3:
             north_bid = f'4{sym}'
             self.app.auction_widget.add_bid(north_bid)  # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._start_closing(f'{base}\nמחשב יש לו {north_fit} קלפי {sym}. מתקן ל-{north_bid}.\nחוזה סופי: {north_bid}.', ok=ok)
+            self._start_closing(msg_fn(correct if not ok else north_bid, extra_line=fit_line), ok=ok)
         else:
             self.app.auction_widget.add_bid('Pass')      # N
             self.app.auction_widget.add_bid('Pass')      # E
-            self._finish(f'{base}\nמחשב יש לו {north_fit} קלפי {sym} בלבד. עובר.\nחוזה סופי: 3NT.', ok=ok)
-
-    def _explain_wrong(self, bid, correct, h, suit_len, sym):
-        if correct == 'Pass':
-            return f'✗ בחרת {bid}.\nיש {h} נקודות. מכריזים פס.\nהנכון: Pass.'
-        if correct == '2NT':
-            return f'✗ בחרת {bid}.\nיש {h} נקודות, יש 5 קלפי {sym}. מזמינים 2NT.\nהנכון: 2NT.'
-        if correct == f'3{sym}':
-            return f'✗ בחרת {bid}.\nיש {h} נקודות, יש {suit_len} קלפי {sym}. מכריזים 3{sym}.\nהנכון: 3{sym}.'
-        if correct == '3NT':
-            return f'✗ בחרת {bid}.\nיש {h} נקודות, יש 5 קלפי {sym}. מכריזים 3NT.\nהנכון: 3NT.'
-        if correct == f'4{sym}':
-            return f'✗ בחרת {bid}.\nיש {h} נקודות, יש {suit_len} קלפי {sym}. יש משחק מלא.\nהנכון: {correct}.'
-        return f'✗ בחרת {bid}. הנכון: {correct}.'
+            self._finish(msg_fn(correct if not ok else '3NT', extra_line=fit_line), ok=ok)
 
     # ── סיום ───────────────────────────────────────────────────────────────
 

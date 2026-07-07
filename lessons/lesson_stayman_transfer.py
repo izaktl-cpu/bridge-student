@@ -4,7 +4,7 @@ from engine.deal_constraints import deal_robot_opens_1nt_stayman, deal_robot_ope
 from engine.rebid import opener_rebid
 from engine.scoring import hcp, distribution
 from engine.cards import SUIT_SYMBOLS
-from utils.messages import msg_retry, msg_chose_wrong, msg_correct_final
+from utils.messages import msg_retry, msg_correct_final
 
 _S = SUIT_SYMBOLS
 
@@ -51,11 +51,6 @@ class LessonStaymanTransfer(BaseLesson):
             self.app.auction_widget.add_bid(bid, highlight=True)
             self._execute_first_bid(bid, why)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid('Pass')
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._execute_first_bid(bid, '')
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
@@ -63,7 +58,7 @@ class LessonStaymanTransfer(BaseLesson):
             else:
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(f'✗ בחרת {bid}.\n{why}.', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _calc_correct_first_bid(self):
         h = hcp(self.hands['S'])
@@ -90,15 +85,15 @@ class LessonStaymanTransfer(BaseLesson):
 
     def _execute_first_bid(self, bid, why):
         if bid == 'Pass':
-            self._finish(f'✓ {why}. חוזה סופי: 1NT.', ok=True)
+            self._finish('חוזה סופי\n1NT', ok=True)
         elif bid == '2NT':
             north_bid, n_why = opener_rebid(self.hands['N'], '1NT', '2NT')
             self.app.auction_widget.add_bid('Pass')
             self.app.auction_widget.add_bid(north_bid)
-            self._finish(f'✓ {why}.\nמחשב ענה {north_bid}: {n_why}.\nחוזה סופי: {north_bid}.', ok=True)
+            self._finish(f'מחשב ענה {north_bid}. {n_why}\nחוזה סופי\n{north_bid}', ok=True)
         elif bid == '3NT':
             self.app.auction_widget.add_bid('Pass')
-            self._finish(f'✓ {why}. חוזה סופי: 3NT.', ok=True)
+            self._finish('חוזה סופי\n3NT', ok=True)
         elif bid == '2♣':
             self._do_stayman(why)
         elif bid == '2♦':
@@ -172,20 +167,15 @@ class LessonStaymanTransfer(BaseLesson):
         h = hcp(self.hands['S'])
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)
-            self._finish(msg_correct_final(bid), ok=True)
+            self._finish(f'חוזה סופי\n{bid}', ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(
-                    f'בחרת {bid}.\nיש לך {h} נקודות.\nהנכון: {correct}.', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _calc_stayman_cont(self):
         h = hcp(self.hands['S'])
@@ -249,20 +239,15 @@ class LessonStaymanTransfer(BaseLesson):
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)
             final_contract = f'2{self._transfer_sym}' if bid == 'Pass' else bid
-            self._finish(f'✓ נכון! {self._transfer_why}. חוזה סופי: {final_contract}.', ok=True)
+            self._finish(f'חוזה סופי\n{final_contract}', ok=True)
         else:
-            if self._tries >= 1 and bid == self._last_wrong_bid:
-                self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(msg_chose_wrong(bid, correct), ok=False)
-                return
             self._tries += 1
             if self._tries == 1:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
-                self._finish(
-                    f'✗ בחרת {bid}. עם {h} נקודות ו-5+ {sym}, הנכון: {correct}.', ok=False)
+                self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
 
     def _calc_transfer_cont(self):
         h = hcp(self.hands['S'])
