@@ -129,8 +129,7 @@ class LessonNegativeDouble(BaseLesson):
             ('פס',                'אין מספיק'),
         ]
         self.app.set_instruction_table(
-            f'N פתח {self._n_bid}, E הכריז {self._e_bid}.\n'
-            f'יש לך {h} נקודות. מה תכריז',
+            'מה תכריז',
             rows
         )
 
@@ -224,8 +223,7 @@ class LessonNegativeDouble(BaseLesson):
             (ns_bid,  f'חזרה ל{_suit_sym(self._n_suit)}'),
         ]
         self.app.set_instruction_table(
-            f'N פתח {self._n_bid}, E הכריז {self._e_bid}, S הכריז X.\n'
-            f'יש לך {h} נקודות. מה תכריז',
+            'מה תכריז',
             rows
         )
 

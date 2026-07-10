@@ -188,9 +188,9 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
     # לאחר 1NT מהשותף (ללא תמיכה)
     if response == '1NT':
         if is_minor:
-            if h >= 19:
+            if h >= 18:
                 return '3NT', 'יד חזקה. קופץ ל-3NT'
-            if h >= 17:
+            if h >= 15:
                 return '2NT', 'יד בינונית. מזמין לחוזה 3NT'
             return 'Pass', 'יד מינימום. מכריזים פס'
         if h >= 18:
@@ -202,7 +202,7 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
     # לאחר 2NT מהשותף
     if response == '2NT':
         if is_minor:
-            if h >= 17:
+            if h >= 13:
                 return '3NT', 'מקבל הזמנה. קופץ למשחק'
             return 'Pass', 'יד מינימום. דוחה הזמנה'
         if h >= 14:
@@ -212,10 +212,8 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
     # לאחר לימיט ריס (3M / 3m). חייב לבוא לפני תמיכה פשוטה
     if response.startswith('3') and resp_suit == open_suit:
         if is_minor:
-            other = [s for s in ['H', 'S', 'C', 'D'] if s != open_suit]
-            all_stopped = all(has_stopper(hand, s) for s in other)
-            if h >= 14 and all_stopped:
-                return '3NT', 'מקבל הזמנה עם עוצרים. קופץ למשחק'
+            if h >= 14:
+                return '3NT', 'מקבל הזמנה. קופץ למשחק'
             return 'Pass', 'יד מינימום. דוחה הזמנה'
         if h >= 15:
             return f'4{sym}', 'מקבל הזמנה. קופץ למשחק'
@@ -224,12 +222,10 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
     # לאחר תמיכה פשוטה (2M / 2m)
     if resp_suit == open_suit:
         if is_minor:
-            other = [s for s in ['H', 'S', 'C', 'D'] if s != open_suit]
-            all_stopped = all(has_stopper(hand, s) for s in other)
-            if h >= 19 and all_stopped:
-                return '3NT', 'יד חזקה עם עוצרים. קופץ ל-3NT'
-            if h >= 17 and all_stopped:
-                return '2NT', 'יד בינונית עם עוצרים. מזמין לחוזה 3NT'
+            if h >= 18:
+                return '3NT', 'יד חזקה. קופץ ל-3NT'
+            if h >= 15:
+                return f'3{sym}', 'יד בינונית. מזמין למשחק'
             return 'Pass', 'יד מינימום. מכריזים פס'
         dp = dist_fit_pts(hand, trump=open_suit, opener=True)
         tot = h + dp
@@ -267,8 +263,12 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
             return '1♥', 'מראה 4+ קלפי ♥. up-the-line'
         if d.get('S', 0) >= 4:
             return '1♠', 'מראה 4+ קלפי ♠. up-the-line'
+        if d.get('D', 0) >= 4:
+            return '2♦', 'תמיכה ב-4+ קלפי ♦'
         if d.get('C', 0) >= 5:
             return '2♣', '5+ קלפי ♣. חוזר לסדרת הפתיחה'
+        if h >= 18:
+            return '2NT', '18-19 נקודות מאוזן. מזמין ל-3NT'
         return '1NT', 'מאוזן. 1NT'
 
     # אחרי תגובת מינור ברמה 1. הראה מיגור (up-the-line)
@@ -281,6 +281,11 @@ def _rebid_after_suit(hand, h, d, bal, open_suit, response):
     # לאחר צבע חדש ברמה 2
     if resp_level >= 2 and is_minor and d.get(open_suit, 0) >= 4:
         return f'2{sym}', f'4+ קלפי {sym}. חוזר לסדרת הפתיחה'
+    # צבע מינור חדש ברמה 2 = כפוי (11+). פותח ללא תמיכה מראה NT לפי עוצמה
+    if resp_level >= 2 and resp_suit in ('C', 'D'):
+        if h >= 19:
+            return '3NT', 'יד חזקה. קופץ ל-3NT'
+        return '2NT', 'ללא תמיכה בסדרת השותף. 2NT'
     if d.get(open_suit, 0) >= 5:
         return f'2{sym}', f'5+ קלפי {sym}. חוזר לסדרת הפתיחה'
     return '1NT', 'ללא התאמה. 1NT'

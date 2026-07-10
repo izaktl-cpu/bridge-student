@@ -377,60 +377,75 @@ def deal_robot_opens_minor(minor='C', advanced=False, scenario='free'):
 
 def deal_minor_nt(minor='D'):
     """
-    שיעור 15: N פותח 1♦, S מראה 5+ קלפי מינור עם 11-14 (3♦)
-    N: 12-14 או 18-19 HCP, 4+ minor
-    S: 11-14 HCP, 5+ minor, ללא 4+ מיגור
+    שיעור 15: N פותח 1♦, S מראה 5+ קלפי מינור עם 11-13 (3♦)
+    N: 12-14 או 18-19 HCP, 4+ minor, חצי-מאוזנת (כל סדרה 2+)
+    S: 11-13 HCP, 5+ minor, ללא 4+ מיגור, חצי-מאוזנת (כל סדרה 2+)
     scenario:
-      n_low      — N<14: לא בטוח ב-25+ נק' משותפות (S מובטח רק 11+) → Pass, נשארים ב-3m
+      n_low      — N=12-13 ומתחת ל-25 משותפות (אין משחק) → Pass, נשארים ב-3m
       s_has_stop — N>=14, לS יש עוצר בסדרה שN שואל → 3NT
-      s_no_stop  — N>=14, לS אין עוצר → 5m
+      s_no_stop  — N>=14, לS אין עוצר → 4m (N 14-16) או 5m (N 17+)
     """
-    import random as _rnd
-    scenario = _rnd.choice(['n_low', 's_has_stop', 's_no_stop'])
+    # רוב הידיות (~65%) מסתיימות ב-3NT: התאמת מינור → שאלת עוצר → נמצא עוצר
+    scenario = random.choices(
+        ['s_has_stop', 'n_low', 's_no_stop'],
+        weights=[65, 20, 15])[0]
     other = [s for s in ['H', 'S', 'C', 'D'] if s != minor]
     sym = SUIT_SYMBOLS[minor]
 
-    def ok(hands):
-        n, s = hands['N'], hands['S']
-        hn, hs = hcp(n), hcp(s)
-        dn, ds = distribution(n), distribution(s)
+    def n_ok(n):
+        hn = hcp(n)
         if not ((12 <= hn <= 14) or (18 <= hn <= 19)):
             return False
         if suit_len(n, minor) < 4:
             return False
+        # חצי-מאוזנת: כל סדרה 2+ קלפים (בלי בודדים, בלי חוסרים)
+        if min(distribution(n).values()) < 2:
+            return False
         if _opening_bid(n)[0] != f'1{sym}':
             return False
-        if not (11 <= hs <= 14):
+        if scenario == 'n_low':
+            return 12 <= hn <= 13
+        if hn < 14:
+            return False
+        # N חסר עוצר בדיוק בסדרה אחת
+        return len([su for su in other if not has_stopper(n, su)]) == 1
+
+    def s_ok(s, n):
+        hn, hs = hcp(n), hcp(s)
+        ds = distribution(s)
+        if not (11 <= hs <= 13):
             return False
         if ds[minor] < 5:
             return False
         if ds['H'] >= 4 or ds['S'] >= 4:
             return False
-
+        # חצי-מאוזנת: כל סדרה 2+ קלפים (בלי בודדים, בלי חוסרים)
+        if min(ds.values()) < 2:
+            return False
         if scenario == 'n_low':
-            return 12 <= hn <= 13
-
-        if hn < 14:
-            return False
-
-        # N חסר עוצר בדיוק בסדרה אחת
-        n_missing = [su for su in other if not has_stopper(n, su)]
-        if len(n_missing) != 1:
-            return False
-        ask = n_missing[0]
+            # Pass ב-3m נכון רק כשאין משחק כלל (מתחת ל-25 משותפות)
+            return hn + hs <= 24
+        ask = next(su for su in other if not has_stopper(n, su))
         if scenario == 's_has_stop':
-            if not has_stopper(s, ask):
-                return False
-            if hn + hs < 25:
-                return False
-        elif scenario == 's_no_stop':
-            if has_stopper(s, ask):
-                return False
-            if hn + hs < 28:
-                return False
-        return True
+            return has_stopper(s, ask) and hn + hs >= 25
+        # s_no_stop
+        return (not has_stopper(s, ask)) and hn + hs >= 25
 
-    return _try(ok)
+    # חלוקה דו-שלבית: קובעים קודם את N, ואז מחפשים S בין הנותרים (מהיר ואמין
+    # יותר מחלוקה אקראית מלאה, כי הסצנריו s_no_stop נדיר מאוד).
+    for _outer in range(_MAX_TRIES):
+        deck = make_deck()
+        random.shuffle(deck)
+        n = deck[:13]
+        if not n_ok(n):
+            continue
+        remaining = deck[13:]
+        for _inner in range(200):
+            random.shuffle(remaining)
+            s = remaining[:13]
+            if s_ok(s, n):
+                return {'N': n, 'E': remaining[13:26], 'S': s, 'W': remaining[26:]}
+    raise RuntimeError('לא ניתן לחלק יד עם האילוצים שנדרשו')
 
 
 def deal_respond_nt_major(major='H'):

@@ -110,30 +110,29 @@ def respond_minor(hand, opener_suit):
 
     if opener_suit == 'C' and fit >= 5:
         dp_note = f' (+{dp} חוסר)' if dp else ''
-        if tot <= 10:
+        if h <= 10:
             return '2♣', f'קלפי ♣ 5+, נקודות {h}{dp_note}. תמיכה, מסיים את המכרז'
-        if tot >= 13:
-            return '3NT', f'נקודות {h}{dp_note}. קופץ למשחק'
-        if bal:
-            all_stopped = (has_stopper(hand, 'H') and has_stopper(hand, 'S')
-                           and has_stopper(hand, 'D'))
-            if all_stopped:
-                return '2NT', f'נקודות {h}{dp_note} מאוזן, עוצרים בכל הצבעים. מזמין לחוזה 3NT'
-        return '3♣', f'קלפי ♣ 5+, נקודות {h}{dp_note}. תמיכה חזקה, מזמין למשחק'
-    if opener_suit == 'D' and fit >= 5:
+        if not bal:
+            if h >= 13:
+                return '3NT', f'נקודות {h}{dp_note}. קופץ למשחק'
+            return '3♣', f'קלפי ♣ 5+, נקודות {h}{dp_note}. תמיכה חזקה, מזמין למשחק'
+        # מאוזן 11+ נופל לבלוק ה-NT למטה (2NT/3NT)
+    if opener_suit == 'D' and fit >= 4:
         dp_note = f' (+{dp} חוסר)' if dp else ''
-        if tot >= 13:
+        all_stopped = (has_stopper(hand, 'H') and has_stopper(hand, 'S')
+                       and has_stopper(hand, 'C'))
+        if h >= 13:
             if not bal:
                 return f'3{sym}', f'5+ קלפי {sym}, {h}{dp_note} נקודות לא מאוזן. כפוי למשחק'
-            # מאוזן 13+. נופל לבדיקת 3NT למטה
-        elif tot >= 11:
-            all_stopped = (has_stopper(hand, 'H') and has_stopper(hand, 'S')
-                           and has_stopper(hand, 'C'))
-            if not (bal and all_stopped):
-                return f'3{sym}', f'5+ קלפי {sym}, {h}{dp_note} נקודות. תמיכה חזקה, מזמין'
-        else:
-            # 6-10 נקודות. תמיכה גם ביד מאוזנת 5332
-            return f'2{sym}', f'5+ קלפי {sym}, {h}{dp_note} נקודות. תמיכה, מסיים את המכרז'
+            # מאוזן 13+ נופל ל-3NT למטה
+        elif h >= 11:
+            if not bal or not all_stopped:
+                return f'3{sym}', f'תמיכה ב-{sym}, {h}{dp_note} נקודות. תמיכה חזקה, מזמין'
+            # מאוזן עם עוצרים נופל ל-2NT למטה
+        else:  # 6-10 נקודות
+            if fit >= 5 or not bal:
+                return f'2{sym}', f'תמיכה ב-{sym}, נקודות {h}{dp_note}. מסיים את המכרז'
+            # 4 קלפי מאוזן חלש נופל ל-1NT למטה
 
     if bal:
         if h >= 13:
@@ -153,13 +152,13 @@ def respond_minor(hand, opener_suit):
 # ═══════════════════════════════════════════════════════════════════════════
 
 def respond_minor_nt(hand, minor):
-    """S: 5+ קלפי מינור, 11-14 HCP. קפיצה ישירה ל-3 במינור."""
+    """S: 5+ קלפי מינור, 11-13 HCP. קפיצה ישירה ל-3 במינור."""
     sym = _S[minor]
-    return f'3{sym}', f'5+ קלפי {sym}, 11+ נקודות. קפיצה ישירה'
+    return f'3{sym}', f'5+ קלפי {sym}, 11-13 נקודות. קפיצה ישירה'
 
 
 def opener_rebid_after_3minor(hand, minor):
-    """N: לאחר קפיצת S ל-3 במינור (11-14). שואל עוצר רק אם בטוח ב-25+ נק' משותפות
+    """N: לאחר קפיצת S ל-3 במינור (11-13). שואל עוצר רק אם בטוח ב-25+ נק' משותפות
     (S מובטח 11+, אז צריך N בעצמו 14+). אחרת נשאר הכי נמוך שאפשר — Pass."""
     if hcp(hand) < 14:
         return 'Pass', 'לא בטוח ב-25+ נקודות משותפות. נשארים ב-3 במינור'
@@ -177,7 +176,7 @@ def opener_rebid_after_3minor(hand, minor):
 def responder_stopper_reply(hand, minor, ask_suit):
     """S: עונה לשאלת העוצר של N. יש עוצר → 3NT.
     אין עוצר → חוזר לרמה הכי נמוכה האפשרית במינור (4m, לא קופצים ל-5m —
-    N כבר יודע ש-S מובטח 11-14 ויחליט בעצמו אם להרים ל-5m)."""
+    N כבר יודע ש-S מובטח 11-13 ויחליט בעצמו אם להרים ל-5m)."""
     sym = _S[minor]
     if has_stopper(hand, ask_suit):
         return '3NT', f'יש עוצר ב-{_S[ask_suit]}. 3NT'
@@ -186,7 +185,7 @@ def responder_stopper_reply(hand, minor, ask_suit):
 
 def opener_after_stopper_denial(hand, minor):
     """N: לאחר ש-S חזר ל-4m (אין עוצר). N מחליט אם להרים ל-5m או להישאר.
-    S מובטח 11-14; כדי להעריך 28+ נק' משותפות (סף משחק במינור) N צריך בעצמו 17+."""
+    S מובטח 11-13; כדי להעריך 28+ נק' משותפות (סף משחק במינור) N צריך בעצמו 17+."""
     h   = hcp(hand)
     sym = _S[minor]
     if h >= 17:
@@ -306,8 +305,8 @@ def responder_continuation_after_minor(hand, s_bid, n_rebid):
         tot = h + dp
         if tot >= 13:
             return f'4{n_sym}', f'13+ נקודות עם תמיכה ב-{n_sym}. משחק מלא'
-        if tot >= 11:
-            return f'3{n_sym}', f'11-12 נקודות עם תמיכה ב-{n_sym}. הזמנה למשחק'
+        if tot >= 10:
+            return f'3{n_sym}', f'10-12 נקודות עם תמיכה ב-{n_sym}. הזמנה למשחק'
         return 'Pass', f'6-9 נקודות. חלש, מכריזים פס'
 
     # אחרי הזמנה ב-3M (פותח בינוני, 15-17)

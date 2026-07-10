@@ -90,25 +90,25 @@ def check_respond_minor(hand, opener_suit):
             passes += 1
     # תמיכת מינור
     elif bid == f'2{sym}':
-        if opener_suit == 'C' and (fit < 5 or bal or h > 10):
+        # תמיכת מינור: ♣ צריך 5+, ♦ צריך 5+ או 4 לא-מאוזן (4 מאוזן → 1NT). יד מאוזנת מותרת.
+        if opener_suit == 'C' and (fit < 5 or h > 10):
             if fit < 5:
                 fail(label, f'2{sym} עם {fit} קלפים בלבד (צריך 5+)', hand)
-            elif bal:
-                fail(label, f'2{sym} עם יד מאוזנת', hand)
-            elif h > 10:
+            else:
                 fail(label, f'2{sym} עם {h} נקודות (צריך 6-10)', hand)
-        elif opener_suit == 'D' and (fit < 4 or bal or h > 10):
+        elif opener_suit == 'D' and (fit < 4 or (fit == 4 and bal) or h > 10):
             if fit < 4:
                 fail(label, f'2{sym} עם {fit} קלפים (צריך 4+)', hand)
-            elif bal:
-                fail(label, f'2{sym} עם יד מאוזנת', hand)
-            elif h > 10:
+            elif fit == 4 and bal:
+                fail(label, f'2{sym} עם 4 קלפים ויד מאוזנת (צריך 1NT)', hand)
+            else:
                 fail(label, f'2{sym} עם {h} נקודות (צריך 6-10)', hand)
         else:
             passes += 1
     elif bid == f'3{sym}':
-        if opener_suit == 'D' and (fit < 4 or bal or h < 11):
-            fail(label, f'3{sym} לא תקין: fit={fit} bal={bal} h={h}', hand)
+        # 3♦ לימיט: 4+ קלפי ♦ ו-11+ נקודות (יד מאוזנת בלי עוצר מותרת)
+        if opener_suit == 'D' and (fit < 4 or h < 11):
+            fail(label, f'3{sym} לא תקין: fit={fit} h={h}', hand)
         else:
             passes += 1
     # NT
@@ -292,10 +292,10 @@ def check_continuation(s_hand, s_bid, n_rebid):
             fail(label, f'4M אחרי 2m עם tot={tot}', s_hand)
         else:
             passes += 1
-    # 3M — צריך 11-14 (1NT) או 11-14 (2m)
+    # 3M — הזמנה: 10-12 (אחרי תמיכת 2M) / 11-14 (אחרי 1NT)
     elif s_suit in ('H', 'S') and bid == f'3{_S[s_suit]}':
-        if tot < 11:
-            fail(label, f'3M עם tot={tot} (צריך 11+)', s_hand)
+        if tot < 10:
+            fail(label, f'3M עם tot={tot} (צריך 10+)', s_hand)
         elif n_rebid == '1NT' and tot >= 13:
             fail(label, f'3M אחרי 1NT עם tot={tot} (היה צריך 4M)', s_hand)
         elif n_rebid in ('2♣', '2♦') and tot >= 15:

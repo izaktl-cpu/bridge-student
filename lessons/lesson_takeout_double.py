@@ -87,7 +87,7 @@ class LessonTakeoutDouble(BaseLesson):
                 ('קיו ביט',    '13+ נקודות'),
             ]
         self.app.set_instruction_table(
-            f'W פתח {self._w_bid}, שותף הכריז X.\nיש לך {h} נקודות. מה תכריז',
+            'מה תכריז',
             rows
         )
 
@@ -217,7 +217,7 @@ class LessonTakeoutDouble(BaseLesson):
         h  = hcp(self.hands['S'])
         es = _suit_sym(self._e_suit)
         self.app.set_instruction_table(
-            f'E פתח {self._e_bid}.\nיש לך {h} נקודות. מה תכריז',
+            'מה תכריז',
             [
                 ('X',   f'12-16 נקודות, קוצר ב-{es}, 3+ בכל השאר\nאו 17+ נקודות (כל חלוקה)'),
                 ('1NT', f'15-18 נקודות, מאוזן, עוצר ב-{es}'),

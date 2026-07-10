@@ -157,7 +157,7 @@ class LessonOvercallResponse(BaseLesson):
                 ('Pass',                  'יד חלשה'),
             ]
         self.app.set_instruction_table(
-            f'יריב פתח {self._w_bid}. שותף הכריז {self._n_bid}. מה תענה',
+            'מה תענה',
             table
         )
 

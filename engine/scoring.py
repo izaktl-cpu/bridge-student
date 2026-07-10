@@ -25,15 +25,14 @@ def total_pts(hand):
     return hcp(hand) + length_pts
 
 def has_stopper(hand, suit):
-    """A / Kx / QJx / QT9 / Jxxx"""
+    """A / Kx / Qxx / Jxxx"""
     cards = [c for c in hand if card_suit(c) == suit]
     ranks = [card_rank(c) for c in cards]
     n = len(ranks)
     if 'A' in ranks:                                       return True  # A
     if 'K' in ranks and n >= 2:                           return True  # Kx
-    if 'Q' in ranks and 'J' in ranks and n >= 3:         return True  # QJx
-    if 'Q' in ranks and 'T' in ranks and '9' in ranks:   return True  # QT9
-    if 'J' in ranks and n >= 4:                          return True  # Jxxx
+    if 'Q' in ranks and n >= 3:                            return True  # Qxx (כולל QJx/QT9)
+    if 'J' in ranks and n >= 4:                            return True  # Jxxx
     return False
 
 

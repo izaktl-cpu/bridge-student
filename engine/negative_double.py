@@ -79,17 +79,21 @@ def s_response(s_hand, n_suit, e_suit, e_level=1):
                 sym = _S[major]
                 return f'{lvl}{sym}', f'{h} נק׳, {d[major]} קלפי {sym}'
 
-    # 2. 13+ → X עם 4 מיגור פנוי, 3NT עם עוצר, קיו ביט ללא עוצר ובלי מיגור
-    if h >= 13:
+    # 2. עדיפות ראשונה למיגור: 4 קלפים במיגור לא-מוכרז → X נגטיב (לפני 2NT/תמיכה/מינור)
+    min_x_hcp = 7 if e_level == 1 else 8
+    if h >= min_x_hcp:
         for major in unbid_majors:
             if d[major] >= 4:
                 return 'X', f'{h} נק׳, 4 קלפי {_S[major]}. נגטיב דאבל'
+
+    # 3. 13+ ללא מיגור: 3NT עם עוצר, קיו ביט ללא עוצר
+    if h >= 13:
         if has_stopper(s_hand, e_suit):
             return '3NT', f'{h} נק׳, עוצר ב{_S[e_suit]}. 3NT'
         sym = _S[e_suit]
         return f'{e_level + 1}{sym}', f'{h} נק׳. קיו ביט'
 
-    # 3. 11-12 עם עוצר → 2NT (לפני תמיכה. NT עדיף על מינור)
+    # 4. 11-12 עם עוצר → 2NT (לפני תמיכה. NT עדיף על מינור)
     if h >= 11 and has_stopper(s_hand, e_suit):
         return '2NT', f'{h} נק׳, עוצר ב{_S[e_suit]}. 2NT'
 

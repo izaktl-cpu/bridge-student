@@ -94,10 +94,14 @@ def _expected_s(s_hand, n_suit, e_suit, e_level=1):
             if h >= min_hcp:
                 return 'major', f'{lvl}{_S[major]}'
 
-    if h >= 13:
+    # עדיפות ראשונה למיגור: 4 קלפים במיגור לא-מוכרז → X נגטיב (לפני 2NT/תמיכה/מינור)
+    min_x_hcp = 7 if e_level == 1 else 8
+    if h >= min_x_hcp:
         for major in um:
             if d[major] >= 4:
                 return 'X', 'X'
+
+    if h >= 13:
         if has_stopper(s_hand, e_suit):
             return '3NT', '3NT'
         return 'cue', f'{e_level + 1}{_S[e_suit]}'
