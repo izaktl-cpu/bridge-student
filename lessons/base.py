@@ -26,6 +26,8 @@ class BaseLesson:
         self._close_msg      = message
         self._close_ok       = ok
         self._close_correct  = correct_answer
+        if ok:
+            self.app.set_feedback('', ok=True)   # מחליף אדום בירוק "נכון" מיד לאחר תיקון
         self.app.show_all_hands()
         self.app.bidding_box.enable()
         self.app.bidding_box.set_bids(None)

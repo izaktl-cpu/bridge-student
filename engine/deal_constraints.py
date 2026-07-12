@@ -209,21 +209,30 @@ def deal_with_overcall(north_opening='1♥'):
 def deal_robot_opens_1nt_stayman():
     """
     N = 15-17 HCP מאוזן.
-    S = 0-14 HCP, 2+ רביעיות, אחת לפחות במיגור עיקרי (בדיוק 4, לא 5+).
-    (כולל 0-7 נק' — מפתה לסטיימן אבל התשובה הנכונה פס.)
+    S — אחד משני סוגים:
+      ~75% יד סטיימן: 0-14 HCP, מיגור עיקרי בדיוק 4 (לא 5+), 2+ רביעיות.
+                      (0-7 → פס מפתה; 8+ → 2♣)
+      ~25% יד NT:     8-14 HCP מאוזן, בלי מיגור עיקרי רביעייה.
+                      (8-9 → 2NT; 10+ → 3NT)
     """
+    nt_hand = random.random() < 0.25
+
     def ok(hands):
         n = hands['N']
         s = hands['S']
         if not (15 <= hcp(n) <= 17 and is_balanced(n)):
             return False
         hs = hcp(s)
-        if not (0 <= hs <= 14):
-            return False
         d = distribution(s)
         if d['H'] >= 5 or d['S'] >= 5:
             return False
         has_major_4 = d['H'] == 4 or d['S'] == 4
+        if nt_hand:
+            # יד NT: מאוזן 8-14 בלי מיגור רביעייה → 2NT/3NT
+            return (8 <= hs <= 14) and (not has_major_4) and is_balanced(s)
+        # יד סטיימן
+        if not (0 <= hs <= 14):
+            return False
         if not has_major_4:
             return False
         four_count = sum([d['S'] == 4, d['H'] == 4, d['D'] >= 4, d['C'] >= 4])
@@ -240,8 +249,13 @@ _HONORS = frozenset('AKQJ')
 def deal_robot_opens_1nt_transfer():
     """
     N = 15-17 HCP מאוזן, לפחות J אחד בכל סדרה (אין סדרה עירומה).
-    S = 0-14 HCP, בעל 5+ קלפי מיגור עיקרי (H או S).
+    S — אחד משני סוגים:
+      ~75% יד טרנספר: 0-14 HCP, 5+ קלפי מיגור עיקרי (H או S) → 2♦/2♥.
+      ~25% יד NT:     0-14 HCP מאוזן, בלי מיגור עיקרי חמישייה.
+                      (0-7 → פס; 8-9 → 2NT; 10+ → 3NT)
     """
+    nt_hand = random.random() < 0.25
+
     def ok(hands):
         n = hands['N']
         s = hands['S']
@@ -256,6 +270,9 @@ def deal_robot_opens_1nt_transfer():
         if not (0 <= hs <= 14):
             return False
         d = distribution(s)
+        if nt_hand:
+            # יד NT: מאוזן בלי מיגור עיקרי חמישייה → פס/2NT/3NT
+            return d['H'] < 5 and d['S'] < 5 and is_balanced(s)
         return d['H'] >= 5 or d['S'] >= 5
     return _try(ok)
 
@@ -521,6 +538,25 @@ def deal_robot_opens_2nt_transfer():
             return False
         d = distribution(s)
         return d['H'] >= 5 or d['S'] >= 5
+    return _try(ok)
+
+
+def deal_robot_opens_2nt_nt():
+    """
+    N = 20-22 HCP מאוזן.
+    S = 0-12 HCP מאוזן, בלי מיגור עיקרי רביעייה/חמישייה.
+    (0-4 → פס; 5-10 → 3NT; 11-12 → 4NT כמותי)
+    """
+    def ok(hands):
+        n = hands['N']
+        s = hands['S']
+        if not (20 <= hcp(n) <= 22 and is_balanced(n)):
+            return False
+        hs = hcp(s)
+        if not (0 <= hs <= 12):
+            return False
+        d = distribution(s)
+        return d['H'] < 4 and d['S'] < 4 and is_balanced(s)
     return _try(ok)
 
 
@@ -900,6 +936,10 @@ def deal_robot_opens_2c():
             if not (d_n['H'] >= 5 or d_n['S'] >= 5):
                 return False
         hs = hcp(s)
+        # פותח חזק מאוד (25+) — המשיב מוגבל ל-4 נקודות מקסימום.
+        # כך S תמיד עונה 2♦ שלילי ופס על 3NT, בלי סלם אבוד (25+8=33).
+        if hn >= 25 and hs > 4:
+            return False
         if 4 <= hs <= 10:
             d_s = distribution(s)
             has_5major = d_s['H'] >= 5 or d_s['S'] >= 5
@@ -1615,13 +1655,9 @@ def deal_ogust(major='H'):
                 continue
             if sure_tricks(n) < 4:
                 continue
-            has_fit = suit_len(n, major) >= 2
-            strong_suits = sum(
-                1 for s in ['S', 'H', 'D', 'C']
-                if suit_len(n, s) >= 4
-                and sum(1 for c in n if c[1] == s and c[0] in ('A', 'K', 'Q')) >= 2
-            )
-            if not has_fit and strong_suits < 2:
+            # N חייב תמיכה אמיתית של 2+ קלפים במיגור הפותח (לא סינגלטון/ריק) —
+            # אחרת אין הרמה של המיגור והיד כלל לא שייכת לאוגוסט.
+            if suit_len(n, major) < 2:
                 continue
             e = remaining[13:26]
             w = remaining[26:]

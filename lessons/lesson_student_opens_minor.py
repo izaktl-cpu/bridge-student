@@ -29,11 +29,11 @@ _FIXED_S = [
 _FIXED_RULES = [
     ('1♦', 'סדרה ארוכה ביותר',
      'יש לך 5 קלפי ♦. תמיד פותחים בסדרה הארוכה.'),
-    ('1♣', 'מינור מאולץ (18 נק\' מאוזן)',
+    ('1♣', 'מינור מאולץ. 18 נקודות מאוזן',
      'יש 18 נקודות מאוזן. חזק מדי ל-1NT (15-17).\nאין 5 קלפי מיגור, 3-3 במינורים.\nפותחים 1♣ ומתכוונים להכריז 2NT בסיבוב הבא.'),
     ('1♦', 'נמוכה מ-2 רביעיות',
      'יש לך 4♥ ו-4♦. שתי רביעיות.\nפותחים בנמוכה מביניהן. ♦ נמוכה מ-♥.'),
-    ('1♣', 'מינור מאולץ (4♥, אין 5 מיגור)',
+    ('1♣', 'מינור מאולץ. 4♥ בלי 5 מיגור',
      'יש לך 4♥ אבל אין 5 קלפי מיגור לפתיחה.\n3-3 במינורים. פותחים 1♣ (הנמוך).'),
     ('1NT', 'יד מאוזנת 15-17 נקודות',
      'יש 17 נקודות מאוזן (4-4-3-2).\nזוהי פתיחת 1NT. לא מינור'),
@@ -99,7 +99,7 @@ def _opening_rule(hand):
                     f'יש לך 4{msym} אבל אין 5 קלפי מיגור.\n'
                     f'אין 4+ קלפי מינור. פותחים {bid} עם 3 קלפים.')
         if h >= 18 and bal:
-            return (bid, 'מינור מאולץ (18+ נק\')',
+            return (bid, 'מינור מאולץ. 18+ נקודות',
                     f'יש {h} נקודות מאוזן. חזק מדי ל-1NT.\n'
                     f'פותחים {bid} ומכריזים 2NT בסיבוב הבא.')
         return (bid, 'מינור מאולץ',
@@ -224,7 +224,7 @@ class LessonStudentOpensMinor(BaseLesson):
                 self._set_rebid_instruction(north_bid)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.reset()
                 self.app.set_feedback('נסה שוב', ok=False)
@@ -309,7 +309,7 @@ class LessonStudentOpensMinor(BaseLesson):
             self._finish(self._correct_message(final), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.set_last_bid(self._north_bid)
                 self.app.set_feedback('נסה שוב', ok=False)

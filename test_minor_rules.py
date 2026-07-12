@@ -120,8 +120,8 @@ chk('1C 6♣ nonbal 8hcp → 2♣',  respond_minor(build(2,2,3,6,8),  'C'), '2�
 chk('1C 5♣ bal 8hcp → 2♣',     respond_minor(build(3,3,2,5,8),  'C'), '2♣')
 chk('1C bal 11hcp → 2NT',       respond_minor(build(3,3,3,4,11), 'C'), '2NT')
 chk('1C bal 12hcp → 2NT',       respond_minor(build(3,3,3,4,12), 'C'), '2NT')
-chk('1C 6♣ nonbal 11hcp → 3♣',  respond_minor(build(2,2,3,6,11), 'C'), '3♣')
-chk('1C 6♣ nonbal 12hcp → 3♣',  respond_minor(build(2,2,3,6,12), 'C'), '3♣')
+chk('1C 6♣ semibal 11hcp → 2NT', respond_minor(build(2,2,3,6,11), 'C'), '2NT')
+chk('1C 6♣ semibal 12hcp → 2NT', respond_minor(build(2,2,3,6,12), 'C'), '2NT')
 chk('1C bal 13hcp → 3NT',       respond_minor(build(3,3,3,4,13), 'C'), '3NT')
 chk('1C 6♣ nonbal 13hcp → 3NT', respond_minor(build(2,2,3,6,13), 'C'), '3NT')
 
@@ -143,7 +143,7 @@ chk('1D bal 11hcp עוצרים → 2NT', respond_minor(
 chk('1D 4♦ bal 11hcp ללא עוצר♣ → 3♦', respond_minor(build(3,3,4,3,11), 'D'), '3♦')
 chk('1D 5♦ nonbal 11hcp → 3♦',  respond_minor(build(2,2,5,4,11), 'D'), '3♦')
 chk('1D bal 13hcp → 3NT',       respond_minor(build(3,3,4,3,13), 'D'), '3NT')
-chk('1D 6♣ no4♦ 11hcp → 2♣',  respond_minor(build(2,2,3,6,11), 'D'), '2♣')
+chk('1D 6♣ semibal no4♦ 11hcp → 2NT', respond_minor(build(2,2,3,6,11), 'D'), '2NT')
 
 
 # ════════════════════════════════════════════════════════════════════════════════

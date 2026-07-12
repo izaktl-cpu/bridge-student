@@ -39,17 +39,13 @@ def _calc_response(hand, major):
     fit         = suit_len(hand, major) >= 2
     other       = [x for x in ['S', 'H', 'D', 'C'] if x != major]
     stops       = all(has_stopper(hand, suit) for suit in other)
-    other_major = 'H' if major == 'S' else 'S'
-    long_other  = suit_len(hand, other_major) >= 6
 
-    if st >= 4 and fit:
+    if fit and st >= 5:
         return f'4{sym}'
-    if st >= 4 and long_other:
-        return f'4{_S[other_major]}'
+    if fit and st == 4:
+        return f'3{sym}'          # הזמנה
     if st >= 4 and stops and suit_len(hand, major) >= 1:
         return '3NT'
-    if st == 3 and fit:
-        return f'3{sym}'
     return 'Pass'
 
 
@@ -78,18 +74,10 @@ def _validate_response(resp_hand, major, response, idx, errors, label='S'):
     fit         = suit_len(resp_hand, major) >= 2
     other       = [x for x in ['S', 'H', 'D', 'C'] if x != major]
     stops       = all(has_stopper(resp_hand, suit) for suit in other)
-    other_major = 'H' if major == 'S' else 'S'
-    long_other  = suit_len(resp_hand, other_major) >= 6
 
-    if response == f'4{_S[other_major]}':
-        if st < 4:
-            errors.append(f'#{idx}: {label} הכריז 4{_S[other_major]} עם {st} לקיחות (מינ׳ 4)')
-        if not long_other:
-            errors.append(f'#{idx}: {label} הכריז 4{_S[other_major]} ללא 6+ קלפי {_S[other_major]}')
-
-    elif response == f'4{sym}':
-        if st < 4:
-            errors.append(f'#{idx}: {label} הכריז 4{sym} עם {st} לקיחות בלבד (מינ׳ 4)')
+    if response == f'4{sym}':
+        if st < 5:
+            errors.append(f'#{idx}: {label} הכריז 4{sym} עם {st} לקיחות בלבד (מינ׳ 5)')
         if not fit:
             errors.append(f'#{idx}: {label} הכריז 4{sym} ללא 2+ קלפי {sym}')
 
@@ -100,19 +88,19 @@ def _validate_response(resp_hand, major, response, idx, errors, label='S'):
             errors.append(f'#{idx}: {label} הכריז 3NT ללא עוצרים בכל הסדרות')
 
     elif response == f'3{sym}':
-        if st != 3:
-            errors.append(f'#{idx}: {label} הכריז 3{sym} עם {st} לקיחות (צ"ל 3)')
+        if st != 4:
+            errors.append(f'#{idx}: {label} הכריז 3{sym} עם {st} לקיחות (צ"ל 4)')
         if not fit:
             errors.append(f'#{idx}: {label} הכריז 3{sym} ללא 2+ קלפי {sym}')
 
     elif response == 'Pass':
-        if st >= 3 and fit:
+        has_major_card = suit_len(resp_hand, major) >= 1
+        if fit and st >= 4:
             errors.append(
                 f'#{idx}: {label} פס עם {st} לקיחות + תמיכה '
                 f'(צ"ל 3{sym} לפחות)')
-        has_major_card = suit_len(resp_hand, major) >= 1
-        if st >= 4 and stops and has_major_card:
-            errors.append(f'#{idx}: {label} פס עם {st} לקיחות + עוצרים (צ"ל 3NT לפחות)')
+        elif stops and has_major_card and st >= 4:
+            errors.append(f'#{idx}: {label} פס עם {st} לקיחות + עוצרים (צ"ל 3NT)')
 
 
 # ─── מצב A: מחשב פותח, תלמיד עונה ─────────────────────────────────────────

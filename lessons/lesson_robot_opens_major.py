@@ -52,16 +52,14 @@ class LessonRobotOpensMajor(BaseLesson):
 
         self.app.bidding_box.set_last_bid(f'1{sym}')
 
+        self._panel_rows = [
+            ('0-5',   '',            'פס'),
+            ('6-9',   f'3+ קלפי{sym}', f'2{sym}'),
+            ('10-11', f'3+ קלפי{sym}', f'3{sym}'),
+            ('12+',   f'3+ קלפי{sym}', f'4{sym}'),
+        ]
         if LessonRobotOpensMajor._deal_count <= 3:
-            self.app.set_instruction_table(
-                f'מחשב פתח 1{sym}.',
-                [
-                    ('0-5',   '',            'פס'),
-                    ('6-9',   f'3+ קלפי{sym}', f'2{sym}'),
-                    ('10-11', f'3+ קלפי{sym}', f'3{sym}'),
-                    ('12+',   f'3+ קלפי{sym}', f'4{sym}'),
-                ]
-            )
+            self.app.set_instruction_table('מה תענה', self._panel_rows)
 
     def on_student_bid(self, bid):
         if self._handle_close(bid): return
@@ -89,7 +87,7 @@ class LessonRobotOpensMajor(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')
                 self._start_closing(message, ok=True)
         else:
-            if self._tries >= 1:
+            if self._tries >= 2:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
@@ -107,6 +105,10 @@ class LessonRobotOpensMajor(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות (נכונה וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

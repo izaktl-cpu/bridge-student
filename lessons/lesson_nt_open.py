@@ -41,7 +41,7 @@ class LessonNTOpen(BaseLesson):
         self.app.table.show_hands(self.hands, visible=('S',))
         self.app.auction_widget.reset()
         self.app.auction_widget.set_dealer('S')
-        self.app.set_instruction('ספור את הנקודות שלך.\nיד מאוזנת?\nמה תפתח?')
+        self.app.set_instruction('ספור את הנקודות שלך\nיד מאוזנת\nמה תפתח')
 
     def on_student_bid(self, bid):
         if self._stage == 'open':
@@ -81,7 +81,7 @@ class LessonNTOpen(BaseLesson):
                 self._finish(self._correct_message('3NT'), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.reset()
                 self.app.set_feedback('נסה שוב', ok=False)
@@ -106,7 +106,7 @@ class LessonNTOpen(BaseLesson):
             self._finish(self._correct_message(final), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.reset()
                 self.app.bidding_box.set_last_bid('2NT')

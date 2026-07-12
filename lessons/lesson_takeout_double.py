@@ -30,6 +30,11 @@ class LessonTakeoutDouble(BaseLesson):
         cls._opener_idx += 1
         return word
 
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
+
     def start(self):
         if not self._replaying:
             self._phase = getattr(self, '_next_phase', 1)
@@ -76,17 +81,17 @@ class LessonTakeoutDouble(BaseLesson):
         is_minor = best in ('C', 'D')
         if is_minor:
             rows = [
-                ('ברמה נמוכה', '0–10 נקודות (מינור)'),
-                ('קפיצה',      '11–12 נקודות (מינור)'),
-                ('קיו ביט',    '13+ נקודות (מינור)'),
+                ('ברמה נמוכה', '0-10 נקודות'),
+                ('קפיצה',      '11-12 נקודות'),
+                ('קיו ביט',    '13+ נקודות'),
             ]
         else:
             rows = [
-                ('ברמה נמוכה', '0–8 נקודות'),
-                ('קפיצה',      '9–12 נקודות'),
+                ('ברמה נמוכה', '0-8 נקודות'),
+                ('קפיצה',      '9-12 נקודות'),
                 ('קיו ביט',    '13+ נקודות'),
             ]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             rows
         )
@@ -129,7 +134,7 @@ class LessonTakeoutDouble(BaseLesson):
                         ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -192,7 +197,7 @@ class LessonTakeoutDouble(BaseLesson):
                 self._finish(f'{self._next_opener()}\n{self._cue_expl}\nההכרזה הנכונה\n{bid}', ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -216,11 +221,11 @@ class LessonTakeoutDouble(BaseLesson):
 
         h  = hcp(self.hands['S'])
         es = _suit_sym(self._e_suit)
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             [
-                ('X',   f'12-16 נקודות, קוצר ב-{es}, 3+ בכל השאר\nאו 17+ נקודות (כל חלוקה)'),
-                ('1NT', f'15-18 נקודות, מאוזן, עוצר ב-{es}'),
+                ('X',   f'12-16 נקודות קוצר ב-{es} 3+ בכל השאר\nאו 17+ נקודות'),
+                ('1NT', f'15-18 נקודות מאוזן עוצר ב-{es}'),
                 ('Pass', 'לא עומד בתנאים'),
             ]
         )
@@ -260,7 +265,7 @@ class LessonTakeoutDouble(BaseLesson):
             self._finish(msg, ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -281,7 +286,7 @@ class LessonTakeoutDouble(BaseLesson):
 
     def _no_double_reason(self, h, d):
         if not (12 <= h <= 16):
-            return f'{h} נקודות. לא בטווח 12–16.'
+            return f'{h} נקודות. לא בטווח 12-16.'
         ec = d.get(self._e_suit, 0)
         if ec > 3:
             es = _suit_sym(self._e_suit)
@@ -303,6 +308,9 @@ class LessonTakeoutDouble(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.show_all_hands()
         self.app.set_feedback(message, ok=ok, correct_answer=correct_answer)
         self.app.show_new_deal_button()

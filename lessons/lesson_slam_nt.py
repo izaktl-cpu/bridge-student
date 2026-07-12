@@ -13,6 +13,7 @@ _RKCB_EXPLAIN = {
     f'5{_S["D"]}': '1 או 4 אסים',
     f'5{_S["H"]}': '2 אסים, ללא Q♠',
     f'5{_S["S"]}': '2 אסים + Q♠',
+    '5NT': '5 מפתחות',
 }
 
 _MODE_D_SEQS = [
@@ -41,6 +42,11 @@ class LessonSlamNT(BaseLesson):
             lines.append(extra_line)
         lines += ['ההכרזה הנכונה', correct]
         return '\n'.join(lines)
+
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
 
     def start(self):
         if not self._replaying:
@@ -76,13 +82,13 @@ class LessonSlamNT(BaseLesson):
         self.app.auction_widget.add_bid('1NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             [
                 ('Pass', '0-7 נקודות'),
-                ('2NT', '8-9. הזמנה ל-3NT'),
+                ('2NT', '8-9 הזמנה ל-3NT'),
                 ('3NT', '10-15 נקודות'),
-                ('4NT', '16+. הזמנה לסלם\nל-6NT: 33 נק\' משותפות'),
+                ('4NT', '16+ הזמנה לסלם\nל-6NT 33 נקודות משותפות'),
             ]
         )
         self.app.bidding_box.set_last_bid('1NT')
@@ -99,13 +105,13 @@ class LessonSlamNT(BaseLesson):
         self.app.auction_widget.add_bid('2NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             [
                 ('3NT', '5-10 נקודות'),
-                ('4NT', '11-12. הזמנה לסלם'),
-                ('6NT', '13-16 נקודות. סלם ישיר'),
-                ('7NT', '17+ נקודות. סלם גדול'),
+                ('4NT', '11-12 הזמנה לסלם'),
+                ('6NT', '13-16 נקודות סלם ישיר'),
+                ('7NT', '17+ נקודות סלם גדול'),
             ]
         )
         self.app.bidding_box.set_last_bid('2NT')
@@ -132,12 +138,12 @@ class LessonSlamNT(BaseLesson):
         rows = []
         if opening in ('C', 'D'):
             rows = [
-                ('1♥', '4+ קלפי ♥, אין 5 ♠'),
-                ('1♠', '4+ קלפי ♠\nעם 5♠ ו-4♥, ♠ קודם'),
+                ('1♥', '4+ קלפי ♥ אין 5 ♠'),
+                ('1♠', '4+ קלפי ♠\nעם 5♠ ו-4♥ ♠ קודם'),
             ]
         else:  # opening == 'H'
             rows = [('1♠', '4+ קלפי ♠')]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז', rows)
         self.app.bidding_box.set_last_bid(open_bid)
 
@@ -159,9 +165,9 @@ class LessonSlamNT(BaseLesson):
         self._tries = 0
 
         resp_sym = _S[response]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
-            [(resp_bid, f'4+ קלפי {resp_sym}, 18+ נק\'')]
+            [(resp_bid, f'4+ קלפי {resp_sym} 18+ נקודות')]
         )
         self.app.bidding_box.set_last_bid(open_bid)
 
@@ -181,7 +187,7 @@ class LessonSlamNT(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')           # E
                 self._stage = 'rkcb_ask_d'
                 self._tries = 0
-                self.app.set_instruction_table(
+                self._table(
                     'מה תכריז',
                     [('4NT', f'שאלת אסים בשליט {m_sym}')])
                 self.app.bidding_box.set_last_bid(n_rebid)
@@ -191,13 +197,13 @@ class LessonSlamNT(BaseLesson):
                 self.app.auction_widget.add_bid('Pass')           # E
                 self._stage = 'decide_d'
                 self._tries = 0
-                self.app.set_instruction_table(
+                self._table(
                     'מה תכריז',
                     [('4NT', 'שואל מינימום או מקסימום\n33 נקודות משותפות ל-6NT')])
                 self.app.bidding_box.set_last_bid('1NT')
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -217,14 +223,14 @@ class LessonSlamNT(BaseLesson):
             self._tries = 0
             m_sym = _S[self._trump]
             explain = _RKCB_EXPLAIN.get(n_resp, '')
-            self.app.set_instruction_table(
+            self._table(
                 f'N ענה {n_resp}\n{explain}\nמה תכריז',
                 [(f'6{m_sym}', '5 אסים ו-33 נקודות'),
                  (f'5{m_sym}', 'פחות מ-5 או פחות מ-33')])
             self.app.bidding_box.set_last_bid(n_resp)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -246,7 +252,7 @@ class LessonSlamNT(BaseLesson):
                 self._finish(f'נכון\n{kc} אסים ו-{combined} נקודות\nעוצרים ב-{correct}', ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -273,7 +279,7 @@ class LessonSlamNT(BaseLesson):
                     ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -291,18 +297,18 @@ class LessonSlamNT(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # E
             self._stage = 'decide'
             self._tries = 0
-            self.app.set_instruction_table(
+            self._table(
                 'מה תכריז',
                 [
                     ('3NT', 'עד 16 נקודות'),
-                    ('4NT', '17-19. הזמנה לסלם'),
-                    ('6NT', '20+. סלם ישיר'),
+                    ('4NT', '17-19 הזמנה לסלם'),
+                    ('6NT', '20+ סלם ישיר'),
                 ]
             )
             self.app.bidding_box.set_last_bid('1NT')
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -342,7 +348,7 @@ class LessonSlamNT(BaseLesson):
             self._execute_bid(bid)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 hs = hcp(self.hands['S'])
@@ -439,7 +445,7 @@ class LessonSlamNT(BaseLesson):
             self._finish(f'נכון\n{hs} נקודות\nחוזה\n{n_bid}', ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -456,11 +462,11 @@ class LessonSlamNT(BaseLesson):
             if self._mode == 'A' and hs >= 20:
                 self._stage = 'decide_grand'
                 self._tries = 0
-                self.app.set_instruction_table(
+                self._table(
                     'מה תכריז',
                     [
                         ('Pass', 'מסתפקים בסלם קטן'),
-                        ('5NT', f'{hs} נקודות. שואל מינימום/מקסימום לסלם גדול'),
+                        ('5NT', f'{hs} נקודות שואל מינימום מקסימום לסלם גדול'),
                     ]
                 )
                 self.app.bidding_box.set_last_bid('6NT')
@@ -506,9 +512,9 @@ class LessonSlamNT(BaseLesson):
         self._stage = 'e_bid1'
         self._tries = 0
 
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
-            [(f'1{_S["S"]}', f'5+ קלפי {_S["S"]}, 4+ {_S["H"]}, יד חזקה')]
+            [(f'1{_S["S"]}', f'5+ קלפי {_S["S"]} 4+ {_S["H"]} יד חזקה')]
         )
         self.app.bidding_box.set_last_bid(open_bid)
 
@@ -521,14 +527,14 @@ class LessonSlamNT(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # E
             self._stage = 'e_bid2'
             self._tries = 0
-            self.app.set_instruction_table(
+            self._table(
                 f'מה תכריז',
-                [(f'3{_S["H"]}', f'4 קלפי {_S["H"]}, יד חזקה')]
+                [(f'3{_S["H"]}', f'4 קלפי {_S["H"]} יד חזקה')]
             )
             self.app.bidding_box.set_last_bid('1NT')
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -544,14 +550,14 @@ class LessonSlamNT(BaseLesson):
             self.app.auction_widget.add_bid('Pass')               # E
             self._stage = 'e_bid3'
             self._tries = 0
-            self.app.set_instruction_table(
+            self._table(
                 'מה תכריז',
                 [('4NT', f'שאלת אסים בשליט {_S["S"]}')]
             )
             self.app.bidding_box.set_last_bid(n_bid)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -574,10 +580,10 @@ class LessonSlamNT(BaseLesson):
             self._stage = 'e_bid4'
             self._tries = 0
             rows = [
-                (f'6{_S["S"]}', f'5 אסים, או 4+33 נק\''),
-                (f'5{_S["S"]}', '4 אסים ופחות מ-33, או פחות מ-4'),
+                (f'6{_S["S"]}', f'5 אסים או 4+33 נקודות'),
+                (f'5{_S["S"]}', '4 אסים ופחות מ-33 או פחות מ-4'),
             ]
-            self.app.set_instruction_table('מה תכריז', rows)
+            self._table('מה תכריז', rows)
             self.app.bidding_box.set_last_bid(n_rkcb)
 
         if bid == correct:
@@ -585,7 +591,7 @@ class LessonSlamNT(BaseLesson):
             _go_next()
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -607,14 +613,14 @@ class LessonSlamNT(BaseLesson):
                 if total_kc >= 5:
                     reason = f'{total_kc} אסים'
                 else:
-                    reason = f'4 אסים + {total_hcp} נק\''
+                    reason = f'4 אסים + {total_hcp} נקודות'
                 msg = (f'נכון\n{reason}. חוזה\n{correct}' if ok
                        else f'{reason}\nההכרזה הנכונה\n{correct}')
             else:
                 if total_kc < 4:
                     reason = f'רק {total_kc} אסים'
                 else:
-                    reason = f'4 אסים, רק {total_hcp} נק\''
+                    reason = f'4 אסים, רק {total_hcp} נקודות'
                 msg = (f'נכון\n{reason}\nעוצרים ב-{correct}' if ok
                        else f'{reason}\nההכרזה הנכונה\n{correct}')
             self._finish(msg, ok=ok)
@@ -624,7 +630,7 @@ class LessonSlamNT(BaseLesson):
             _go_next(ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -637,6 +643,10 @@ class LessonSlamNT(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות האחרונה (נכון וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

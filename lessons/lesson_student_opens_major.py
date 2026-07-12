@@ -88,12 +88,12 @@ class LessonStudentOpensMajor(BaseLesson):
                 dp      = dist_fit_pts(self.hands['S'], trump=self._major, opener=True) if is_raise else 0
                 tot     = h_s + dp
                 self._rebid_pts = (h_s, dp, tot)
-                dp_str = f'\nיש {h_s} נקודות גבוהות\nיש {dp} נקודות חוסר\nסה״כ {tot}' if dp > 0 else f'\nיש {h_s} נקודות גבוהות'
+                dp_str = f'\nיש {h_s} נקודות גבוהות\nיש {dp} נקודות חוסר\n{tot} נקודות' if dp > 0 else f'\nיש {h_s} נקודות גבוהות'
                 self.app.bidding_box.set_last_bid(north_bid)
                 self.app.set_instruction(f'{dp_str.lstrip(chr(10))}\n\nמה תכריז')
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.reset()
                 self.app.set_feedback('נסה שוב', ok=False)
@@ -119,7 +119,7 @@ class LessonStudentOpensMajor(BaseLesson):
             self._finish(self._correct_message(final_contract), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.bidding_box.set_last_bid(self._north_bid)
                 self.app.set_feedback('נסה שוב', ok=False)

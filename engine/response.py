@@ -3,7 +3,7 @@
 מחזיר (bid, explanation).
 """
 
-from engine.scoring import hcp, is_balanced, distribution, suit_len, dist_fit_pts, has_stopper
+from engine.scoring import hcp, is_balanced, is_semi_balanced, distribution, suit_len, dist_fit_pts, has_stopper
 from engine.cards import SUIT_SYMBOLS
 
 _S = SUIT_SYMBOLS
@@ -78,7 +78,8 @@ def respond_minor(hand, opener_suit):
     """opener_suit: 'C' or 'D'"""
     h   = hcp(hand)
     d   = distribution(hand)
-    bal = is_balanced(hand)
+    # בתגובה למינור: NT מותר גם ליד חצי-מאוזנת (מאוזן קפדני רק בפתיחת 1NT)
+    bal = is_semi_balanced(hand)
     sym = _S[opener_suit]
     fit = d[opener_suit]
     dp  = dist_fit_pts(hand, trump=opener_suit)  # נקודות חלוקה עם התאמה
@@ -540,7 +541,7 @@ def respond_2c_second(hand, opener_second):
         if h >= 8:
             return '4NT', f'{h} נקודות, ללא התאמה. Blackwood לחקור 6NT'
         # 3♦ מלאכותי. כדי שהפותח יגלם 3NT (לא S)
-        return '3♣', f'ללא התאמה ב-{sym}.\nשקר! 3♣ לא מראה תלתנים.\nN יכריז 3NT ויגלם'
+        return '3♣', f'אין התאמה ב-{sym}. 3♣ אינו מראה ♣\nהפותח יכריז 3NT'
 
     # ── מינור (כפוי למשחק). עדיפות: 4M → 8+ נק' שואל אסים → 3NT ─────────
     if opener_suit in ('C', 'D'):
@@ -570,23 +571,31 @@ def respond_2c_third(hand, s_second, n_third):
     d = distribution(hand)
 
     if s_second == '3♣':  # סטיימן. פותח ענה
+        # מול 2NT (23-24): 10+ נקודות = 33+ משותפות → סלם
+        h = hcp(hand)
         if n_third == '3♥':
-            if d['H'] >= 4:
+            if d['H'] >= 4:  # התאמה → חוזה בשליט
+                if h >= 10:
+                    return '4NT', '10+ נקודות והתאמה ב-♥. בלקווד לחקור 6♥'
                 return '4♥', 'התאמה ב-♥. משחק מלא'
+            if h >= 10:  # אין התאמה → חוזה NT
+                return '4♣', '10+ נקודות מול 23-24. גרבר לחקור 6NT'
             return '3NT', 'ללא התאמה ב-♥'
         if n_third == '3♠':
-            if d['S'] >= 4:
+            if d['S'] >= 4:  # התאמה → חוזה בשליט
+                if h >= 10:
+                    return '4NT', '10+ נקודות והתאמה ב-♠. בלקווד לחקור 6♠'
                 return '4♠', 'התאמה ב-♠. משחק מלא'
+            if h >= 10:  # אין התאמה → חוזה NT
+                return '4♣', '10+ נקודות מול 23-24. גרבר לחקור 6NT'
             return '3NT', 'ללא התאמה ב-♠'
-        if n_third == '3♦':  # ללא מיגור (סטיימן)
-            h = hcp(hand)
-            if h >= 8:
-                return '4♣', 'ללא התאמה. גרבר לחקור 6NT'
+        if n_third == '3♦':  # ללא מיגור (סטיימן) → חוזה NT
+            if h >= 10:
+                return '4♣', '10+ נקודות מול 23-24. גרבר לחקור 6NT'
             return '3NT', 'ללא התאמה במיגור'
         if n_third == '3NT':  # 3♣ שקר. N מגלם 3NT
-            h = hcp(hand)
-            if h >= 8:
-                return '4♣', '8+ נקודות. שואל אסים גרבר'
+            if h >= 10:
+                return '4♣', '10+ נקודות. שואל אסים גרבר'
             return 'Pass', 'חוזה סופי 3NT'
 
     if s_second == '3♦':  # טרנספר ל-♥, פותח ענה 3♥

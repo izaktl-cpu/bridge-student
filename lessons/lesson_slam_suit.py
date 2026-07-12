@@ -28,13 +28,18 @@ class LessonSlamSuit(BaseLesson):
 
     TITLE = 'שיעור 9. סלם בצבע'
 
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
+
     def start(self):
         if self._replaying:
             self._replaying = False
             self._setup_ui()
             return
         self.app.bidding_box.disable()
-        self.app.set_instruction('טוען יד...')
+        self.app.set_instruction('טוען יד')
         def _deal():
             for _ in range(5):
                 try:
@@ -47,7 +52,7 @@ class LessonSlamSuit(BaseLesson):
                     continue
             self.app.after(0, lambda: (
                 self.app.bidding_box.enable(),
-                self.app.set_instruction('שגיאה בחלוקה. נסה שנית.')
+                self.app.set_instruction('שגיאה בחלוקה נסה שנית')
             ))
         threading.Thread(target=_deal, daemon=True).start()
 
@@ -72,7 +77,7 @@ class LessonSlamSuit(BaseLesson):
         self.app.auction_widget.add_bid('Pass')  # E
 
         title, options = self._opening_options()
-        self.app.set_instruction_table(title, options)
+        self._table(title, options)
         self.app.bidding_box.enable()
         self.app.bidding_box.set_last_bid(self._opening, no_pass=True)
 
@@ -85,11 +90,11 @@ class LessonSlamSuit(BaseLesson):
         title = 'מה תכריז'
         if op == '1♥':
             # trump=♠ — S מכריז 1♠ ישירות
-            return title, [(f'1{t}', f'5+ {t}, מראה שליט')]
+            return title, [(f'1{t}', f'5+ {t} מראה שליט')]
         other = '1♥/1♠' if op == '1♦' else '1♦/1♥/1♠'
         return title, [
-            (f'1{t}', f'5+ {t}, מראה שליט ישירות'),
-            (other, '4+ בסדרה, ללא 5-קלף מיגור'),
+            (f'1{t}', f'5+ {t} מראה שליט ישירות'),
+            (other, '4+ בסדרה ללא 5-קלף מיגור'),
         ]
 
     # ── ניתוב ─────────────────────────────────────────────────────────────
@@ -113,7 +118,7 @@ class LessonSlamSuit(BaseLesson):
 
         if not bid.endswith(t) and bid[0] not in ('1', 'P'):
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 disp = '1' + t
@@ -165,7 +170,7 @@ class LessonSlamSuit(BaseLesson):
                         (f'2{t}', '6-9 נקודות'),
                         (f'3{t}', '10-12 נקודות'),
                         (f'4{t}', '13-15 נקודות'),
-                        ('4NT', '16+ נקודות, שאל אסים'),
+                        ('4NT', '16+ נקודות שאל אסים'),
                     ]
                 else:
                     raise_options = [
@@ -173,7 +178,7 @@ class LessonSlamSuit(BaseLesson):
                         (f'3{t}', '10-12 נקודות'),
                         (f'4{t}', '13+ נקודות'),
                     ]
-                self.app.set_instruction_table(
+                self._table(
                     f'N הכריז {n_trump}\n12-17 נקודות\nהראה רמת תמיכה ב-{t}',
                     raise_options
                 )
@@ -225,7 +230,7 @@ class LessonSlamSuit(BaseLesson):
                 self._do_blackwood()
             else:
                 self._tries += 1
-                if self._tries < 2:
+                if self._tries < 3:
                     self.app.set_feedback('נסה שוב', ok=False)
                 else:
                     disp = correct
@@ -235,7 +240,7 @@ class LessonSlamSuit(BaseLesson):
 
         if not bid.endswith(t):
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 correct = self._calc_raise_level()
@@ -251,7 +256,7 @@ class LessonSlamSuit(BaseLesson):
             self._n_auto_decide(bid, ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 disp = correct
@@ -287,7 +292,7 @@ class LessonSlamSuit(BaseLesson):
             self._raise_prefix = prefix
             self._stage = 'rkcb_s'
             self._tries = 0
-            self.app.set_instruction_table(
+            self._table(
                 f'N שאל 4NT\n{combined} נקודות משותפות\nכמה אסים יש לך',
                 [
                     ('5♣', '0 או 3 אסים'),
@@ -323,9 +328,9 @@ class LessonSlamSuit(BaseLesson):
     # ── שלב rkcb_s: S עונה לשאלת N ──────────────────────────────────────────
 
     def _handle_rkcb_s(self, bid):
-        valid_rkcb = {'5♣', '5♦', '5♥', '5♠'}
+        valid_rkcb = {'5♣', '5♦', '5♥', '5♠', '5NT'}
         if bid not in valid_rkcb:
-            self.app.set_feedback('הכרז אסים\n5♣/5♦/5♥/5♠', ok=False)
+            self.app.set_feedback('הכרז אסים\n5♣/5♦/5♥/5♠/5NT', ok=False)
             return
 
         s_rkcb, _, _ = rkcb_response(self.hands['S'], self._trump)
@@ -334,7 +339,7 @@ class LessonSlamSuit(BaseLesson):
 
         if not is_correct:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
                 return
 
@@ -397,22 +402,22 @@ class LessonSlamSuit(BaseLesson):
             dp = self._dist_points()
             hs_adj = self._hs + dp
             self._stage = 'first'
-            self.app.set_instruction_table(
+            self._table(
                 f'N הכריז {n_rebid}\n{n_strength}\nמה תכריז',
                 [
-                    (f'4{t}', '13+ נקודות, יש משחק'),
-                    ('Pass', 'פחות מ-13 נקודות, אין משחק'),
+                    (f'4{t}', '13+ נקודות יש משחק'),
+                    ('Pass', 'פחות מ-13 נקודות אין משחק'),
                 ]
             )
             self.app.bidding_box.set_last_bid(n_rebid, no_pass=False)
             return
 
         self._stage = 'first'
-        self.app.set_instruction_table(
+        self._table(
             f'N הכריז {n_rebid}\n{n_strength}\nמה תכריז',
             [
                 (self._game_bid, game_desc),
-                ('4NT', '33+ נקודות משותפות, שאל אסים'),
+                ('4NT', '33+ נקודות משותפות שאל אסים'),
             ]
         )
         self.app.bidding_box.set_last_bid(n_rebid, no_pass=lvl < 4)
@@ -445,7 +450,7 @@ class LessonSlamSuit(BaseLesson):
                 self._do_blackwood()
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -530,7 +535,7 @@ class LessonSlamSuit(BaseLesson):
         game5 = f'5{t}'
         self._stop_bid = game5 if _bid_rank(game5) > _bid_rank(response) else 'Pass'
 
-        self.app.set_instruction_table(
+        self._table(
             f'מחשב ענה {response}\n{explain}',
             [
                 (f'6{t}',         '5 אסים ו-33 נקודות'),
@@ -558,7 +563,7 @@ class LessonSlamSuit(BaseLesson):
                 self._finish(msg_slam_stop(contract, total, combined), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 total = self._n_kc + self._s_kc
@@ -581,6 +586,10 @@ class LessonSlamSuit(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות האחרונה (נכון וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.show_all_hands()
         self.app.set_feedback(message, ok=ok, correct_answer=correct_answer)
         self.app.show_new_deal_button()

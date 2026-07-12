@@ -218,7 +218,7 @@ class LessonOvercallResponse(BaseLesson):
 
         else:
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback('נסה שוב', ok=False)
             else:

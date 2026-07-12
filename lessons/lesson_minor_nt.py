@@ -24,6 +24,11 @@ class LessonMinorNT(BaseLesson):
         cls._opener_idx += 1
         return word
 
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
+
     def __init__(self, app):
         super().__init__(app)
         self._stage    = None
@@ -51,10 +56,10 @@ class LessonMinorNT(BaseLesson):
 
     def _set_instruction(self):
         sym = _S[self._minor]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             [
-                (f'3{sym}', f'11-13 נקודות, 5+ קלפי {sym}'),
+                (f'3{sym}', f'11-13 נקודות 5+ קלפי {sym}'),
             ]
         )
 
@@ -62,7 +67,7 @@ class LessonMinorNT(BaseLesson):
         ask_suit = next((su for ch, su in _BID_TO_SUIT.items() if ch in n_bid), None)
         ask_sym  = _S[ask_suit] if ask_suit else n_bid
         sym      = _S[self._minor]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             [
                 ('3NT',    f'יש לי עוצר ב-{ask_sym}'),
@@ -80,7 +85,7 @@ class LessonMinorNT(BaseLesson):
         correct, _ = respond_minor_nt(self.hands['S'], self._minor)
         if bid != correct:
             self._tries += 1
-            if self._tries >= 2:
+            if self._tries >= 3:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
                 return
@@ -119,7 +124,7 @@ class LessonMinorNT(BaseLesson):
         correct, _ = responder_stopper_reply(self.hands['S'], self._minor, self._ask_suit)
         if bid != correct:
             self._tries += 1
-            if self._tries >= 2:
+            if self._tries >= 3:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
                 return
@@ -147,6 +152,9 @@ class LessonMinorNT(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

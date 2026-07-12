@@ -165,7 +165,7 @@ class LessonFourthSuit(BaseLesson):
         else:
             s_sym = _CODE[self._s_suit]
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(f'נסה שוב. רמז: יש לך 4+ קלפי {s_sym}.', ok=False)
             else:
@@ -220,7 +220,7 @@ class LessonFourthSuit(BaseLesson):
 
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 _, fsym, _ = compute_fourth_suit(
                     self._n_bid, self._s_bid1, self._n_rebid)
@@ -262,7 +262,7 @@ class LessonFourthSuit(BaseLesson):
                 ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
@@ -302,7 +302,7 @@ class LessonFourthSuit(BaseLesson):
             )
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(
                     f'נסה שוב. רמז: עם 6-10 נקודות ו-5+ קלפי ♦. תמיכה חלשה.',
@@ -354,7 +354,7 @@ class LessonFourthSuit(BaseLesson):
                     ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(
                     f'נסה שוב. רמז: יש לך עוצר ב-{self._ask_sym}? אם לא. חזור ל-♦.',

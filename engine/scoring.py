@@ -15,6 +15,12 @@ def is_balanced(hand):
     lengths = sorted(distribution(hand).values())
     return lengths in ([3, 3, 3, 4], [2, 3, 4, 4], [2, 3, 3, 5])
 
+def is_semi_balanced(hand):
+    """מאוזן או חצי-מאוזן: בלי סינגלטון/ריק. כולל 5-4-2-2 ו-6-3-2-2."""
+    lengths = sorted(distribution(hand).values())
+    return lengths in ([3, 3, 3, 4], [2, 3, 4, 4], [2, 3, 3, 5],
+                       [2, 2, 4, 5], [2, 2, 3, 6])
+
 def longest_suit(hand):
     dist = distribution(hand)
     return max(dist, key=dist.get)
@@ -53,19 +59,21 @@ def rkcb_response(hand, trump_suit):
     """
     תגובת RKCB (Roman Key Card Blackwood) לשאלת 4NT בצבע.
     מחזיר (bid, kc_count, has_q).
-      5♣ = 0 או 3 מפתחות
-      5♦ = 1 או 4 מפתחות
-      5♥ = 2 מפתחות, ללא Q שליט
-      5♠ = 2 מפתחות + Q שליט
+      5♣  = 0 או 3 מפתחות
+      5♦  = 1 או 4 מפתחות
+      5♥  = 2 מפתחות, ללא Q שליט
+      5♠  = 2 מפתחות + Q שליט
+      5NT = 5 מפתחות (כל האסים + מלך השליט)
     """
     kc = key_cards(hand, trump_suit)
     has_q = any(card_rank(c) == 'Q' and card_suit(c) == trump_suit for c in hand)
-    mod = kc % 3
-    if mod == 0:
+    if kc == 5:
+        bid = '5NT'
+    elif kc in (0, 3):
         bid = '5♣'
-    elif mod == 1:
+    elif kc in (1, 4):
         bid = '5♦'
-    else:  # mod == 2
+    else:  # 2 מפתחות
         bid = '5♠' if has_q else '5♥'
     return bid, kc, has_q
 

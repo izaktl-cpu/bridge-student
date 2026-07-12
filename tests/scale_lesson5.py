@@ -1,7 +1,9 @@
 """
 סקייל שיעור 5 — טרנספר אחרי 1NT.
 N: 15-17 HCP מאוזן, לפחות J בכל סדרה.
-S: 0-14 HCP, 5+ קלפי מיגור עיקרי.
+S — שני סוגים:
+  ~75% יד טרנספר: 0-14 HCP, 5+ קלפי מיגור עיקרי → 2♦/2♥.
+  ~25% יד NT:     0-14 HCP מאוזן, בלי מיגור חמישייה. 0-7 → פס, 8-9 → 2NT, 10+ → 3NT.
 
 כללי ההכרזה:
   S אחרי השלמת הטרנספר:
@@ -75,6 +77,7 @@ def _final_contract(s_cont, n_resp, sym):
 
 
 def _check(hands, idx, errors):
+    """מחזיר (הכרזה_ראשונה, המשך_S_או_None, תגובת_N_או_None, חוזה_או_None, sym)."""
     n, s = hands['N'], hands['S']
     hn, hs = hcp(n), hcp(s)
     d_n, d_s = distribution(n), distribution(s)
@@ -86,8 +89,13 @@ def _check(hands, idx, errors):
 
     t_bid, suit_key = _s_transfer(d_s)
     if t_bid is None:
-        errors.append(f'#{idx}: S אין 5+ קלפי מיגור')
-        return None, None, None, None
+        # יד NT: מאוזן 0-14 בלי מיגור חמישייה → פס/2NT/3NT
+        if not (0 <= hs <= 14):
+            errors.append(f'#{idx}: S יד-NT HCP={hs} מחוץ ל-0-14')
+        if not is_balanced(s):
+            errors.append(f'#{idx}: S יד-NT לא מאוזן')
+        first = 'פס' if hs <= 7 else ('2NT' if hs <= 9 else '3NT')
+        return first, None, None, None, None
 
     suit_len = d_s[suit_key]
     north_fit = d_n[suit_key]
@@ -97,11 +105,12 @@ def _check(hands, idx, errors):
     n_resp = _n_response(s_cont, hn, north_fit, sym)
     final  = _final_contract(s_cont, n_resp, sym)
 
-    return s_cont, n_resp, final, sym
+    return t_bid, s_cont, n_resp, final, sym
 
 
 def run(n=3000):
     errors   = []
+    firsts   = Counter()
     s_conts  = Counter()
     n_resps  = Counter()
     finals   = Counter()
@@ -110,7 +119,9 @@ def run(n=3000):
     for i in range(n):
         try:
             hands = deal_robot_opens_1nt_transfer()
-            s_cont, n_resp, final, sym = _check(hands, i, errors)
+            first, s_cont, n_resp, final, sym = _check(hands, i, errors)
+            if first:
+                firsts[first] += 1
             if s_cont is not None:
                 s_conts[s_cont] += 1
                 n_resps[n_resp] += 1
@@ -120,12 +131,18 @@ def run(n=3000):
             errors.append(f'#{i}: {e}')
 
     sep   = '─' * 55
-    total = sum(s_conts.values())
+    total = sum(s_conts.values()) or 1
+    ftot  = sum(firsts.values()) or 1
     print(sep)
     print(f' שיעור 5 — טרנספר  |  {n} ידיות')
     print(sep)
 
-    print('  המשך S:')
+    print('  הכרזה ראשונה של S:')
+    for k, v in sorted(firsts.items(), key=lambda x: -x[1]):
+        print(f'    {k:<6} {v:>5}  ({100*v/ftot:4.1f}%)')
+
+    print()
+    print('  המשך S (אחרי טרנספר):')
     for k, v in sorted(s_conts.items(), key=lambda x: -x[1]):
         print(f'    {k:<6} {v:>5}  ({100*v/total:4.1f}%)')
 

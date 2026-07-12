@@ -4,7 +4,7 @@
 בודק:
   1. אילוצי ה-deal (S, N, יריבים)
   2. חישוב _calc_ogust
-  3. חישוב _effective_tricks
+  3. חישוב _north_tricks
   4. החלטת N (_north_final)
   5. עקביות כללית
 
@@ -27,10 +27,10 @@ from engine.cards import SUIT_SYMBOLS
 _S = SUIT_SYMBOLS
 
 _EXPLAIN = {
-    '3♣':  '6–7 נק׳ מפוזרות',
-    '3♦':  '6–7 נק׳ מרוכזות',
-    '3♥':  '8–9 נק׳ מפוזרות',
-    '3♠':  '8–9 נק׳ מרוכזות',
+    '3♣':  '6-7 נקודות מפוזרות',
+    '3♦':  '6-7 נקודות בסדרה המוכרזת',
+    '3♥':  '8-9 נקודות מפוזרות',
+    '3♠':  '8-9 נקודות מרוכזות בסדרה',
     '3NT': 'AKQ בסדרה',
 }
 
@@ -38,41 +38,28 @@ _EXPLAIN = {
 # ─── לוגיקה (מועתקת מ-lesson_ogust.py) ─────────────────────────────────────
 
 def _calc_ogust(hand, major):
-    h      = hcp(hand)
     honors = sum(1 for c in hand if c[1] == major and c[0] in ('A', 'K', 'Q'))
     if honors == 3:
         return '3NT'
-    concentrated = honors >= 2
+    h = hcp(hand)
+    # מרוכז = אין שום מכובד (A/K/Q/J) מחוץ לשליט; מפוזר = יש מכובד כלשהו בחוץ, כולל J
+    outside = sum(1 for c in hand if c[1] != major and c[0] in ('A', 'K', 'Q', 'J'))
+    concentrated = outside == 0
     if h <= 7:
         return '3♦' if concentrated else '3♣'
     else:
         return '3♠' if concentrated else '3♥'
 
 
-def _suit_tricks(hand, suit):
-    order = ['A', 'K', 'Q', 'J']
-    top_idx = None
-    for i, r in enumerate(order):
-        if any(c[0] == r and c[1] == suit for c in hand):
-            top_idx = i
-            break
-    if top_idx is None:
-        return 0
-    seq = 0
-    for r in order[top_idx:]:
-        if any(c[0] == r and c[1] == suit for c in hand):
-            seq += 1
-        else:
-            break
-    return max(0, seq - top_idx)
+_BID_RANK = {'3♣': 0, '3♦': 1, '3♥': 2, '3♠': 3, '3NT': 4}
 
 
-def _effective_tricks(n, major):
-    total = sum(1 for c in n if c[1] == major and c[0] in ('A', 'K', 'Q', 'J'))
-    for suit in ['S', 'H', 'D', 'C']:
-        if suit != major:
-            total += _suit_tricks(n, suit)
-    return total
+def _partscore_bid(major, ogust_response):
+    """הזמנת החלק-משחק של N: 3 בשליט אם חוקי מעל תשובת האוגוסט, אחרת Pass."""
+    target = f'3{_S[major]}'
+    if _BID_RANK[target] > _BID_RANK.get(ogust_response, -1):
+        return target
+    return 'Pass'
 
 
 def _strong_suits(hand):
@@ -87,23 +74,15 @@ def _strong_suits(hand):
 
 def _north_final(ogust_response, n, major):
     sym = _S[major]
-    et  = _effective_tricks(n, major)
-    fit = suit_len(n, major) >= 2 or _strong_suits(n) >= 2
-    if not fit:
+    if suit_len(n, major) < 2:
         return f'3{sym}'
-    if ogust_response == '3♣':
-        return f'4{sym}' if et >= 7 else f'3{sym}'
-    elif ogust_response == '3♦':
-        return f'4{sym}' if et >= 5 else f'3{sym}'
-    elif ogust_response == '3♥':
-        return f'4{sym}' if et >= 5 else f'3{sym}'
-    else:  # 3♠, 3NT
-        if et >= 6:
-            return f'6{sym}'
-        elif et >= 4:
-            return f'4{sym}'
-        else:
-            return f'3{sym}'
+    # הכל לפי לקיחות גבוהות (sure_tricks): 4=הזמנה, 5=משחק, 6+=שאלת אסים
+    st = sure_tricks(n)
+    if st >= 6:
+        return '4NT'
+    if st >= 5:
+        return f'4{sym}'
+    return _partscore_bid(major, ogust_response)
 
 
 # ─── בדיקה ──────────────────────────────────────────────────────────────────
@@ -139,56 +118,53 @@ def _check_one(hands, major, idx, errors):
         errors.append(f'#{idx}: N HCP={hn} פחות מ-15')
     if n_st < 4:
         errors.append(f'#{idx}: N sure_tricks={n_st} פחות מ-4')
-    if not n_fit and not n_strong:
-        errors.append(f'#{idx}: N אין fit ואין 2 סדרות חזקות')
+    if not n_fit:
+        errors.append(f'#{idx}: N אין תמיכה 2+ במיגור {sym}')
 
     # ── עקביות אוגוסט ─────────────────────────────────────────────────────────
+    # מרוכז = אין שום מכובד (A/K/Q/J) מחוץ לשליט; מפוזר = יש מכובד כלשהו בחוץ, כולל J
+    outside      = sum(1 for c in s if c[1] != major and c[0] in ('A', 'K', 'Q', 'J'))
+    concentrated = outside == 0
     ogust = _calc_ogust(s, major)
     if ogust == '3♣':
-        if not (6 <= hs <= 7) or honors_akq >= 2:
-            errors.append(f'#{idx}: 3♣ שגוי — HCP={hs} AKQ={honors_akq}')
+        if not (6 <= hs <= 7) or concentrated:
+            errors.append(f'#{idx}: 3♣ שגוי — HCP={hs} מרוכז={concentrated}')
     elif ogust == '3♦':
-        if not (6 <= hs <= 7) or honors_akq < 2:
-            errors.append(f'#{idx}: 3♦ שגוי — HCP={hs} AKQ={honors_akq}')
+        if not (6 <= hs <= 7) or not concentrated or honors_akq == 3:
+            errors.append(f'#{idx}: 3♦ שגוי — HCP={hs} מרוכז={concentrated} AKQ בשליט={honors_akq}')
     elif ogust == '3♥':
-        if not (8 <= hs <= 9) or honors_akq >= 2:
-            errors.append(f'#{idx}: 3♥ שגוי — HCP={hs} AKQ={honors_akq}')
+        if not (8 <= hs <= 9) or concentrated:
+            errors.append(f'#{idx}: 3♥ שגוי — HCP={hs} מרוכז={concentrated}')
     elif ogust == '3♠':
-        if not (8 <= hs <= 9) or honors_akq < 2 or honors_akq == 3:
-            errors.append(f'#{idx}: 3♠ שגוי — HCP={hs} AKQ={honors_akq}')
+        if not (8 <= hs <= 9) or not concentrated or honors_akq == 3:
+            errors.append(f'#{idx}: 3♠ שגוי — HCP={hs} מרוכז={concentrated} AKQ בשליט={honors_akq}')
     elif ogust == '3NT':
         if honors_akq != 3:
             errors.append(f'#{idx}: 3NT שגוי — AKQ={honors_akq} (צ"ל 3)')
 
-    # ── עקביות _effective_tricks ──────────────────────────────────────────────
-    et = _effective_tricks(n, major)
-    if et < 0:
-        errors.append(f'#{idx}: et={et} שלילי')
-    if et > 13:
-        errors.append(f'#{idx}: et={et} גבוה מדי')
-
-    # בדיקת רכיב major: כל AKQJ = 1
-    expected_major = sum(1 for c in n if c[1] == major and c[0] in ('A', 'K', 'Q', 'J'))
-    got_major      = sum(1 for c in n if c[1] == major and c[0] in ('A', 'K', 'Q', 'J'))
-    if expected_major != got_major:
-        errors.append(f'#{idx}: חישוב major טעוי')
-
-    # בדיקת רצף: כל סדרה אחרת ≤ 4
-    for suit in ['S', 'H', 'D', 'C']:
-        if suit != major:
-            t = _suit_tricks(n, suit)
-            if t < 0 or t > 4:
-                errors.append(f'#{idx}: _suit_tricks({suit})={t} חריג')
+    # ── לקיחות גבוהות N (sure_tricks) ─────────────────────────────────────────
+    et = sure_tricks(n)
+    if et < 0 or et > 13:
+        errors.append(f'#{idx}: sure_tricks={et} חריג')
 
     # ── החלטת N ───────────────────────────────────────────────────────────────
+    # כלל שטוח לפי לקיחות גבוהות: 4=הזמנה, 5=4M משחק, 6+=4NT שאלת אסים.
+    # הזמנה = 3 בשליט, או Pass אם הפותח כבר בגובה 3 בשליט או מעל (למשל 3♥ בשליט לב).
     n_bid = _north_final(ogust, n, major)
-    valid = {f'3{sym}', f'4{sym}', f'6{sym}'}
+    valid = {f'3{sym}', f'4{sym}', '4NT', 'Pass'}
     if n_bid not in valid:
         errors.append(f'#{idx}: N הכריז {n_bid} שאינו ב-{valid}')
 
-    # אחרי 3NT — לפחות 4M (לא 3M)
-    if ogust == '3NT' and n_bit_rank(n_bid) < n_bit_rank(f'4{sym}'):
-        errors.append(f'#{idx}: אחרי 3NT N הכריז {n_bid} (צ"ל לפחות 4{sym})')
+    if not n_fit:
+        exp = _partscore_bid(major, ogust)
+    elif n_st >= 6:
+        exp = '4NT'
+    elif n_st >= 5:
+        exp = f'4{sym}'
+    else:
+        exp = _partscore_bid(major, ogust)
+    if n_bid != exp:
+        errors.append(f'#{idx}: N הכריז {n_bid} צ"ל {exp} (sure_tricks={n_st})')
 
     return ogust, n_bid, et
 

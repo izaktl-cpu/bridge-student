@@ -4,7 +4,7 @@ from ui.table_widget import BridgeTable
 from ui.auction_widget import AuctionWidget
 from ui.bidding_panel import BiddingPanel
 from ui.animations import maybe_animate
-from utils.rtl import fix, fix_num, wrap
+from utils.rtl import fix, wrap, tokens
 from utils.fonts import F, FB
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
@@ -37,21 +37,21 @@ _LESSONS = [
 ]
 # כפתורי שיעורים בתפריט: (תווית, אינדקס ברירת מחדל)
 _BUTTONS = [
-    ('שיעור 1\n1NT',        0),
-    ('שיעור 2\nמיגורים',    3),
-    ('שיעור 3\nמינורים',    7),
-    ('שיעור 4\nסטיימן',     4),
-    ('שיעור 5\nטרנספר',     5),
-    ('שיעור 6\n2NT',        9),
-    ('שיעור 7\n2♣ חזקה',   8),
-    ('שיעור 8\nסלם NT',    10),
-    ('שיעור 9\nסלם בצבע',  11),
-    ('שיעור 10\nWeak Two', 12),
-    ('שיעור 11\nOgust',    14),
-    ('שיעור 12\nאוברקול',  15),
-    ('שיעור 13\nדבל',       18),
-    ('שיעור 14\nנגטיב X',  19),
-    ('שיעור 15\nNT במינור', 20),
+    ('1 שיעור\n1NT',        0),
+    ('2 שיעור\nמיגורים',    3),
+    ('3 שיעור\nמינורים',    7),
+    ('4 שיעור\nסטיימן',     4),
+    ('5 שיעור\nטרנספר',     5),
+    ('6 שיעור\n2NT',        9),
+    ('7 שיעור\n2♣ חזקה',   8),
+    ('8 שיעור\nNT סלם ב',    10),
+    ('9 שיעור\nסלם בצבע',  11),
+    ('10 שיעור\nWeak Two', 12),
+    ('11 שיעור\nOgust',    14),
+    ('12 שיעור\nאוברקול',  15),
+    ('13 שיעור\nדבל',       18),
+    ('14 שיעור\nנגטיב X',  19),
+    ('15 שיעור\nNT במינור', 20),
 ]
 # זוגות שיעורים: מחשב פותח ↔ תלמיד פותח
 _PAIRS = {0: 1, 1: 0, 2: 3, 3: 2, 4: 4, 5: 5, 6: 7, 7: 6, 8: 8, 9: 9, 10: 10, 11: 11, 12: 13, 13: 12, 14: 14, 15: 16, 16: 15, 18: 18, 20: 20}
@@ -215,36 +215,61 @@ class BridgeApp(ctk.CTk):
     # ── API לשיעורים ───────────────────────────────────────────────────────
 
     def set_instruction(self, text):
+        # התקדמות לסבב/שלב הבא עם הוראה = התלמיד הכריז נכון. אם מוצג 'לא נכון'
+        # (טעות שתוקנה) — מחליפים אותו ב'נכון' ירוק מיד.
+        if text and self.table.showing_wrong():
+            self.table.set_feedback('', ok=True)
         self._pending_table = None
         for w in self._instr_container.winfo_children():
             w.destroy()
         self._instr_container.update_idletasks()
         if text:
-            ctk.CTkLabel(
-                self._instr_container, text=fix(wrap(text)),
-                font=F(14),
-                wraplength=200, justify='right',
-                text_color='#1a3a6b'
-            ).pack()
+            self._render_rtl(
+                self._instr_container, text,
+                font=('Gisha', 14), fg='#1a3a6b', anchor='center'
+            )
 
     def _panel_bg(self):
         """צבע רקע הפנל בזמן ריצה — להתאמת tk.Label לתמה."""
         return self._apply_appearance_mode(self.cget('fg_color'))
 
+    def _render_rtl(self, parent, text, font, fg, anchor='center', bold=False):
+        """מרנדר טקסט עברי בפנל בלי תווי-בקרה: כל אסימון = tk.Label נפרד,
+        ארוז side='right'. עברית נשארת ימין→שמאל, וכל אשכול לטיני (מספר/טווח/
+        הכרזה/סמל) נשאר שלם ולא מתהפך. זה הפתרון היחיד שלא עושה "סלט"."""
+        bg = self._panel_bg()
+        for line in str(text).split('\n'):
+            row = tk.Frame(parent, bg=bg)
+            row.pack(anchor=anchor, pady=1)
+            toks = tokens(line)
+            if not toks:
+                # שורה ריקה — שומרים רווח אנכי
+                tk.Label(row, text=' ', font=font, bg=bg, fg=fg).pack()
+                continue
+            for tok in toks:
+                tk.Label(row, text=tok, font=font, bg=bg, fg=fg).pack(
+                    side='right', padx=1
+                )
+
     def set_instruction_table(self, header, rows):
         """header: str, rows: [(bid, condition_str), ...]
         מציג רק את הכותרת — הטבלה תוצג אחרי הכרזת התלמיד."""
+        # מעבר לשלב חדש = התלמיד הכריז נכון. אם קודם הוצג 'לא נכון' (טעות
+        # שתוקנה) — מחליפים אותו ב'נכון' ירוק. אחרת מנקים פידבק ישן.
+        if self.table.showing_wrong():
+            self.table.set_feedback('', ok=True)
+        else:
+            self.table.clear_feedback()
         self._pending_table = rows
         for w in self._instr_container.winfo_children():
             w.destroy()
         if header:
-            # tk.Label (לא CTkLabel) כי CTkLabel מתעלם מכיוון RTL
-            tk.Label(
-                self._instr_container, text=fix(wrap(header)),
-                font=('Gisha', 14, 'bold'), bg=self._panel_bg(),
-                fg='#1a3a6b', justify='center', anchor='center',
-                wraplength=260
-            ).pack(anchor='center', pady=(0, 3))
+            hdr = tk.Frame(self._instr_container, bg=self._panel_bg())
+            hdr.pack(anchor='center', pady=(0, 3))
+            self._render_rtl(
+                hdr, header,
+                font=('Gisha', 14, 'bold'), fg='#1a3a6b', anchor='center'
+            )
 
     def _render_table(self, parent, rows, font_size=13, fg='#555555'):
         """מרנדר שורות טבלה לתוך parent.
@@ -265,8 +290,8 @@ class BridgeApp(ctk.CTk):
             # שורות נתונים
             for r_idx, row_data in enumerate(rows, start=1):
                 pts, sup, bid = row_data
-                # עמודה 0: הכרזה — Label בודד עם fix_num
-                tk.Label(grid, text=fix_num(str(bid)),
+                # עמודה 0: הכרזה — אשכול לטיני אטומי, בלי תווי-בקרה
+                tk.Label(grid, text=str(bid),
                          font=('Gisha', font_size), bg=bg, fg=fg,
                          anchor='center', padx=14, pady=2
                          ).grid(row=r_idx, column=0, sticky='nsew')
@@ -276,13 +301,12 @@ class BridgeApp(ctk.CTk):
                 if isinstance(sup, (list, tuple)):
                     parts = list(sup)
                 elif sup:
-                    # פירוק אוטומטי: מספר+, מילה עברית, סימן
-                    import re as _re
-                    parts = _re.findall(r'\d+\+?|\d+|[^\W\d_]+|[^\w\s]', sup)
+                    # פירוק אוטומטי דרך הטוקנייזר — טווחים כמו 8-9 נשארים שלמים
+                    parts = tokens(sup)
                 else:
                     parts = []
                 for part in parts:
-                    tk.Label(sup_frame, text=part,
+                    tk.Label(sup_frame, text=str(part),
                              font=('Gisha', font_size), bg=bg, fg=fg,
                              anchor='center', padx=3
                              ).pack(side='right')
@@ -294,11 +318,16 @@ class BridgeApp(ctk.CTk):
         else:
             for row in rows:
                 bid, cond = row
-                tk.Label(parent, text=fix_num(str(bid)),
-                         font=('Gisha', font_size), bg=bg,
-                         fg=fg, anchor='e', justify='right',
-                         wraplength=360
-                         ).pack(anchor='e', pady=1)
+                # שורה אחת: ההכרזה מימין, התנאי לצידה — כל אסימון Label נפרד
+                line = tk.Frame(parent, bg=bg)
+                line.pack(anchor='e', pady=1)
+                tk.Label(line, text=str(bid),
+                         font=('Gisha', font_size, 'bold'), bg=bg, fg=fg,
+                         padx=6).pack(side='right')
+                for tok in tokens(str(cond)):
+                    tk.Label(line, text=tok,
+                             font=('Gisha', font_size), bg=bg, fg=fg,
+                             padx=1).pack(side='right')
 
     def add_immediate_table(self, rows):
         """מוסיף טבלה מיידית לאזור ההוראות (לא ממתינה לפידבק)."""

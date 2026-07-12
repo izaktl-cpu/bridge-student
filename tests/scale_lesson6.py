@@ -19,7 +19,9 @@ from collections import Counter, defaultdict
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.deal_constraints import deal_robot_opens_2nt_stayman, deal_robot_opens_2nt_transfer
+from engine.deal_constraints import (deal_robot_opens_2nt_stayman,
+                                      deal_robot_opens_2nt_transfer,
+                                      deal_robot_opens_2nt_nt)
 from engine.scoring import hcp, is_balanced, distribution
 from engine.cards import SUIT_SYMBOLS
 
@@ -34,8 +36,10 @@ def _north_stayman_reply(d_n):
     return '3♦'
 
 
-def _stayman_cont(has_fit, fit_sym):
-    """אחרי 2NT + סטיימן — תמיד משחק (N יש 20-22)."""
+def _stayman_cont(has_fit, fit_sym, hs):
+    """אחרי 2NT + סטיימן. 11-12 → 4♣ גרבר; 5-10 → 4M (התאמה) או 3NT."""
+    if hs >= 11:
+        return '4♣'
     return f'4{fit_sym}' if has_fit else '3NT'
 
 
@@ -58,7 +62,7 @@ def _check_stayman(hands, idx, errors):
     reply = _north_stayman_reply(d_n)
     fit_sym = '♥' if reply == '3♥' else '♠'
     has_fit = (reply == '3♥' and d_s['H'] >= 4) or (reply == '3♠' and d_s['S'] >= 4)
-    cont = _stayman_cont(has_fit, fit_sym)
+    cont = _stayman_cont(has_fit, fit_sym, hs)
     return reply, cont
 
 
@@ -109,6 +113,28 @@ def _check_transfer(hands, idx, errors):
     return s_cont, n_resp, final
 
 
+# ── NT (בלי מיגור) ─────────────────────────────────────────────────────────
+
+def _check_nt(hands, idx, errors):
+    """S מאוזן 0-12 בלי מיגור רביעייה. 0-4 → פס, 5-10 → 3NT, 11-12 → 4NT."""
+    n, s = hands['N'], hands['S']
+    hn, hs = hcp(n), hcp(s)
+    d_s = distribution(s)
+    if not (20 <= hn <= 22):
+        errors.append(f'#{idx} (NT): N HCP={hn} מחוץ לטווח 20-22')
+    if not is_balanced(n):
+        errors.append(f'#{idx} (NT): N לא מאוזן')
+    if not (0 <= hs <= 12):
+        errors.append(f'#{idx} (NT): S HCP={hs} מחוץ ל-0-12')
+    if d_s['H'] >= 4 or d_s['S'] >= 4:
+        errors.append(f'#{idx} (NT): S יש מיגור רביעייה')
+    if not is_balanced(s):
+        errors.append(f'#{idx} (NT): S לא מאוזן')
+    if hs <= 4:
+        return 'פס'
+    return '4♣' if hs >= 11 else '3NT'
+
+
 # ── ריצה ──────────────────────────────────────────────────────────────────
 
 def run(n=2000):
@@ -119,16 +145,18 @@ def run(n=2000):
     tr_conts   = Counter()
     tr_n_resps = Counter()
     tr_finals  = Counter()
+    nt_firsts  = Counter()
 
     for i in range(n):
-        mode = random.choice(['stayman', 'transfer'])
+        r = random.random()
+        mode = 'nt' if r < 0.25 else ('stayman' if r < 0.625 else 'transfer')
         try:
             if mode == 'stayman':
                 hands = deal_robot_opens_2nt_stayman()
                 reply, cont = _check_stayman(hands, i, errors)
                 st_replies[reply] += 1
                 st_conts[cont]    += 1
-            else:
+            elif mode == 'transfer':
                 hands = deal_robot_opens_2nt_transfer()
                 result = _check_transfer(hands, i, errors)
                 if result[0] is not None:
@@ -136,6 +164,9 @@ def run(n=2000):
                     tr_conts[sc]   += 1
                     tr_n_resps[nr] += 1
                     tr_finals[fin] += 1
+            else:
+                hands = deal_robot_opens_2nt_nt()
+                nt_firsts[_check_nt(hands, i, errors)] += 1
             modes[mode] += 1
         except Exception as e:
             errors.append(f'#{i} ({mode}): {e}')
@@ -145,7 +176,12 @@ def run(n=2000):
     print(sep)
     print(f' שיעור 6 — 2NT  |  {n} ידיות')
     print(sep)
-    print(f'  סטיימן={modes["stayman"]}  טרנספר={modes["transfer"]}')
+    print(f'  סטיימן={modes["stayman"]}  טרנספר={modes["transfer"]}  NT={modes["nt"]}')
+
+    print()
+    print('  NT — הכרזה ראשונה של S:')
+    for k, v in sorted(nt_firsts.items(), key=lambda x: -x[1]):
+        print(f'    {k:<6} {v:>5}  ({100*v/max(modes["nt"],1):4.1f}%)')
 
     print()
     print('  סטיימן — תגובות N:')

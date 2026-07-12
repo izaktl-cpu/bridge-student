@@ -79,13 +79,16 @@ class LessonRobotOpensMinor(BaseLesson):
 
     def _set_respond_instruction(self):
         sym = _S[self._minor]
-        self.app.set_instruction_table(
-            'מה תכריז',
-            [
-                (f'2{sym}', '6-10 נקודות'),
-                (f'3{sym}', '11-12 נקודות'),
-            ]
-        )
+        self._respond_rows = [
+            ('1♥ / 1♠', '4+ קלפים במייג׳ור 6+ נקודות'),
+            ('1NT',      '6-10 נקודות חצי מאוזן'),
+            ('2NT',      '11-12 נקודות חצי מאוזן'),
+            ('3NT',      '13+ נקודות חצי מאוזן'),
+            (f'2{sym}',  'תמיכה 6-10 נקודות'),
+            (f'3{sym}',  'תמיכה 11-12 נקודות'),
+            ('פס',       '0-5 נקודות'),
+        ]
+        self.app.set_instruction_table('מה תכריז', self._respond_rows)
 
     def _set_continue_instruction(self, n_bid):
         self.app.set_instruction('מה תכריז')
@@ -111,13 +114,13 @@ class LessonRobotOpensMinor(BaseLesson):
 
         if bid != correct:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 last_bid = self._history_n[-1] if self._history_n else f'1{sym}'
                 self.app.bidding_box.reset()
                 self.app.bidding_box.set_last_bid(last_bid)
                 self.app.set_feedback('נסה שוב', ok=False)
                 return
-            # טעות שנייה — מציגים הודעה ברורה ואת ההכרזה הנכונה, מסיימים
+            # טעות שנייה — מציגים הודעה ברורה ואת ההכרזה הנכונה, מסיימים.
             self.app.auction_widget.add_bid(bid, highlight=True)
             self._finish(f'ההכרזה הנכונה\n{correct}', ok=False)
             return
@@ -171,6 +174,10 @@ class LessonRobotOpensMinor(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות (גם בהכרזה נכונה וגם בטעות)
+        rows = getattr(self, '_respond_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

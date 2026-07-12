@@ -52,7 +52,7 @@ class LessonStaymanTransfer(BaseLesson):
             self._execute_first_bid(bid, why)
         else:
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
@@ -170,7 +170,7 @@ class LessonStaymanTransfer(BaseLesson):
             self._finish(f'חוזה סופי\n{bid}', ok=True)
         else:
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:
@@ -242,7 +242,7 @@ class LessonStaymanTransfer(BaseLesson):
             self._finish(f'חוזה סופי\n{final_contract}', ok=True)
         else:
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback(msg_retry(), ok=False)
             else:

@@ -44,8 +44,17 @@ class LessonStayman(BaseLesson):
         self.app.auction_widget.add_bid('1NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction('מחשב פתח 1NT. מה תכריז')
+        self._set_respond_instruction()
         self.app.bidding_box.set_last_bid('1NT')
+
+    def _set_respond_instruction(self):
+        self._panel_rows = [
+            ('2♣',  '8+ נקודות עם רביעייה במייג׳ור'),
+            ('2NT', '8-9 נקודות בלי מייג׳ור רביעייה'),
+            ('3NT', '10+ נקודות בלי מייג׳ור רביעייה'),
+            ('פס',  '0-7 נקודות'),
+        ]
+        self.app.set_instruction_table('מה תכריז', self._panel_rows)
 
     def on_student_bid(self, bid):
         if self._handle_close(bid): return
@@ -64,7 +73,7 @@ class LessonStayman(BaseLesson):
             self._execute_first_bid(bid, self._correct_message(bid))
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -127,25 +136,20 @@ class LessonStayman(BaseLesson):
         self._tries = 0
 
         r = self._stayman_reply
-        reply_text = {'2♦': 'אין מיגור עיקרי', '2♥': 'יש לו ♥', '2♠': 'יש לו ♠, אין ♥'}[r]
+        reply_text = {'2♦': 'אין מיגור עיקרי', '2♥': 'יש לו 4 קלפי ♥', '2♠': 'יש לו 4 קלפי ♠ אין 4 קלפי ♥'}[r]
         fit = self._has_fit()
         fit_suit = self._fit_suit()
         if fit:
-            self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז',
-                [
-                    (f'3{fit_suit}', '8-9 סה״כ'),
-                    (f'4{fit_suit}', '10+ סה״כ'),
-                ]
-            )
+            self._panel_rows = [
+                (f'3{fit_suit}', '8-9 נקודות'),
+                (f'4{fit_suit}', '10+ נקודות'),
+            ]
         else:
-            self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז',
-                [
-                    ('2NT', '8-9'),
-                    ('3NT', '10+'),
-                ]
-            )
+            self._panel_rows = [
+                ('2NT', '8-9 נקודות'),
+                ('3NT', '10+ נקודות'),
+            ]
+        self.app.set_instruction_table(f'{reply_text}\nמה תכריז', self._panel_rows)
         self.app.bidding_box.set_last_bid(self._stayman_reply)
 
     def _has_fit(self):
@@ -191,7 +195,7 @@ class LessonStayman(BaseLesson):
             self._close_stayman_cont(bid, self._correct_message(bid, extra_pts=extra), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -228,6 +232,10 @@ class LessonStayman(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות הרלוונטית (נכונה וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

@@ -119,9 +119,16 @@ class BridgeTable(ctk.CTkFrame):
             label = 'לא נכון' + ('\n' + body if body else '')
         color = '#90ee90' if ok else '#ffaaaa'
         self._feedback_lbl.configure(text=label, text_color=color)
+        self._fb_ok    = ok
+        self._fb_shown = bool(label)
 
     def clear_feedback(self):
         self._feedback_lbl.configure(text='')
+        self._fb_shown = False
+
+    def showing_wrong(self):
+        """True אם כרגע מוצג פידבק 'לא נכון' (טעות שטרם תוקנה)."""
+        return getattr(self, '_fb_shown', False) and not getattr(self, '_fb_ok', True)
 
     def show_hands(self, hands, visible=('S',)):
         for player, panel in self._panels.items():

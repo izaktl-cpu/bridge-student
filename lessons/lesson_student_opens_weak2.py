@@ -15,17 +15,13 @@ def _n_response(n_hand, major):
     fit         = suit_len(n_hand, major) >= 2
     other       = [x for x in ['S', 'H', 'D', 'C'] if x != major]
     stops       = all(has_stopper(n_hand, suit) for suit in other)
-    other_major = 'H' if major == 'S' else 'S'
-    long_other  = suit_len(n_hand, other_major) >= 6
 
-    if st >= 4 and fit:
+    if fit and st >= 5:
         return f'4{sym}'
-    if st >= 4 and long_other:
-        return f'4{_S[other_major]}'
+    if fit and st == 4:
+        return f'3{sym}'          # הזמנה
     if st >= 4 and stops and suit_len(n_hand, major) >= 1:
         return '3NT'
-    if st == 4 and fit:
-        return f'3{sym}'
     return 'Pass'
 
 
@@ -62,9 +58,9 @@ class LessonStudentOpensWeak2(BaseLesson):
         pos_str = f'יד {pos}'
         self.app.bidding_box.set_last_bid(None)
         self.app.set_instruction_table(
-            f'יש לך 6 קלפי {sym} ו-{hcp(self.hands["S"])} נקודות ({pos_str}). פתח',
+            f'יש לך 6 קלפי {sym} ו-{hcp(self.hands["S"])} נקודות. {pos_str}. פתח',
             [
-                (f'2{sym}', '6 קלפים + 6–9 נקודות. Weak Two'),
+                (f'2{sym}', '6 קלפים + 6-9 נקודות. Weak Two'),
             ]
         )
 
@@ -89,7 +85,7 @@ class LessonStudentOpensWeak2(BaseLesson):
         else:
             pos_note = f'\nיד {pos}, כללים מקלים' if pos == 3 else f'\nיד {pos}'
             self._tries += 1
-            if self._tries == 1:
+            if self._tries < 3:
                 self._last_wrong_bid = bid
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
@@ -102,17 +98,12 @@ class LessonStudentOpensWeak2(BaseLesson):
     def _result_message(self, n_bid):
         n           = self.hands['N']
         sym         = _S[self._major]
-        other_major = 'H' if self._major == 'S' else 'S'
-        other_sym   = _S[other_major]
         st          = sure_tricks(n)
         fit         = suit_len(n, self._major)
-        other_len   = suit_len(n, other_major)
 
         opener = self._next_opener()
         if n_bid == f'4{sym}':
             return f'{opener}\nמחשב קפץ ל-{n_bid}\nיש {high_tricks(st)}\nיש {cards_of(fit, sym)}'
-        if n_bid == f'4{other_sym}':
-            return f'{opener}\nמחשב הכריז {n_bid}\nיש {cards_of(other_len, other_sym)} + {high_tricks(st)}'
         if n_bid == '3NT':
             return f'{opener}\nמחשב הכריז 3NT\nיש {high_tricks(st)} + עוצרים בכל הסדרות'
         if n_bid == f'3{sym}':

@@ -42,6 +42,17 @@ def _north_correct(les):
     return les._north_final(les._ogust_bid)
 
 
+def _bw_correct(les):
+    sym = _S[les._major]
+    return f'6{sym}' if les._total_kc >= 4 else f'5{sym}'
+
+
+def _play_blackwood_if_needed(les):
+    """אם ההחלטה הייתה 4NT — ממשיך לשלב שאלת האסים עד הסלם."""
+    if les._stage == 'blackwood':
+        les.on_student_bid(_bw_correct(les))
+
+
 def _other(options, correct):
     for b in options:
         if b != correct:
@@ -119,6 +130,7 @@ def run():
     app, les = _new(); _advance_to_north(les)
     correct = _north_correct(les)
     les.on_student_bid(correct)
+    _play_blackwood_if_needed(les)
     _show(f'7. north נכון ({correct})', app, les)
     ok &= app.last_feedback[1] is True
 
@@ -127,6 +139,7 @@ def run():
     wrong = _other([f'3{sym}', f'4{sym}', f'6{sym}'], correct)
     les.on_student_bid(wrong); fb1 = app.last_feedback
     les.on_student_bid(correct)
+    _play_blackwood_if_needed(les)
     _show(f'8. north שגוי→נכון ({wrong}→{correct})', app, les)
     ok &= (fb1[0] == 'נסה שוב' and app.last_feedback[1] is True)
 

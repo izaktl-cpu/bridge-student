@@ -32,11 +32,11 @@ def _n_bid_meaning(n_bid, s_bid1):
     if n_sym == s_sym:
         diff = n_lvl - s_lvl
         if diff == 1:
-            return '6-9 נקודות. מינימום'
+            return '6-9 נקודות מינימום'
         if diff == 2:
-            return '10-12 נקודות. הזמנה'
+            return '10-12 נקודות הזמנה'
         if diff >= 3 or n_lvl == 4:
-            return '13+ נקודות. משחק'
+            return '13+ נקודות משחק'
     return ''
 
 
@@ -84,9 +84,9 @@ def _s_rebid_correct(s_hand, s_bid1, n_last_bid, op_bid='Pass'):
                 sp    = _shortage_pts(s_hand, s_suit)
                 total = h + sp
                 if total >= 18:
-                    return f'4{s_sym}', f'{h}+{sp} נקודות חוסר, סה״כ {total}. משחק'
+                    return f'4{s_sym}', f'{h}+{sp} נקודות חוסר, {total} נקודות. משחק'
                 if total >= 16:
-                    return f'3{s_sym}', f'{h}+{sp} נקודות חוסר, סה״כ {total}. ניסיון משחק'
+                    return f'3{s_sym}', f'{h}+{sp} נקודות חוסר, {total} נקודות. ניסיון משחק'
             return 'Pass', f'{h} נקודות. שותף מינימום, פס'
 
         # N הזמין (diff>=2) — N=11-12 נקודות
@@ -350,6 +350,11 @@ class LessonOvercall(BaseLesson):
     def _wrong_message(self, correct):
         return f'ההכרזה הנכונה\n{correct}'
 
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
+
     def start(self):
         if not self._replaying:
             self.hands     = deal_overcall()
@@ -371,11 +376,11 @@ class LessonOvercall(BaseLesson):
         self.app.auction_widget.add_bid(self._e_bid)
         self.app.bidding_box.set_last_bid(self._e_bid)
         eval_txt = _hand_eval(self.hands['S'])
-        self.app.set_instruction_table(
+        self._table(
             f'{eval_txt}\nמה תכריז',
             [
-                ('בגובה 1', '9-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
-                ('בגובה 2', '12-16 נקודות גבוהות\n5 קלפים, 2 מכובדים'),
+                ('בגובה 1', '9-16 נקודות גבוהות\n5 קלפים 2 מכובדים'),
+                ('בגובה 2', '12-16 נקודות גבוהות\n5 קלפים 2 מכובדים'),
                 ('פס',      'אין אוברקול מתאים'),
             ]
         )
@@ -401,7 +406,7 @@ class LessonOvercall(BaseLesson):
                 self._run_auto_then_continue()
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -428,7 +433,7 @@ class LessonOvercall(BaseLesson):
                 self._run_auto_then_continue()
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -541,10 +546,10 @@ class LessonOvercall(BaseLesson):
         eval_txt = _hand_eval(self.hands['S'])
         n_info = self._n_last_bid if self._n_last_bid else ''
         n_meaning = _n_bid_meaning(n_info, self._s_bid1 or '')
-        self.app.set_instruction_table(
+        self._table(
             f'{eval_txt}\n{n_meaning}\nמה תכריז',
-            [('4M / 3NT', 'יד חזקה. משחק'),
-             ('Pass',     'מינימום. פס')]
+            [('4M / 3NT', 'יד חזקה משחק'),
+             ('Pass',     'מינימום פס')]
         )
         self._stage = 'play'
 
@@ -573,6 +578,9 @@ class LessonOvercall(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.show_all_hands()
         self.app.set_feedback(message, ok=ok, correct_answer=correct_answer)
         self.app.show_new_deal_button()

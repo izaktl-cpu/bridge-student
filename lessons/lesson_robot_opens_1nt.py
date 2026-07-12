@@ -48,15 +48,13 @@ class LessonRobotOpens1NT(BaseLesson):
         self.app.auction_widget.add_bid('Pass')  # E
 
         self.app.bidding_box.set_last_bid('1NT')
+        self._panel_rows = [
+            ('פס',  '0-7 נקודות גבוהות'),
+            ('2NT', '8-9 נקודות גבוהות'),
+            ('3NT', '10+ נקודות גבוהות'),
+        ]
         if LessonRobotOpens1NT._deal_count <= 3:
-            self.app.set_instruction_table(
-                'מחשב פתח 1NT. מה תענה',
-                [
-                    ('פס',  '0-7 נקודות גבוהות'),
-                    ('2NT', '8-9 נקודות גבוהות'),
-                    ('3NT', '10+ נקודות גבוהות'),
-                ]
-            )
+            self.app.set_instruction_table('מה תענה', self._panel_rows)
 
     def on_student_bid(self, bid):
         if self._handle_close(bid): return
@@ -75,7 +73,7 @@ class LessonRobotOpens1NT(BaseLesson):
             self.app.auction_widget.add_bid('Pass')                # W
             self._after_correct_response(bid, self._correct_message(bid), ok=True)
         else:
-            if self._tries >= 1:
+            if self._tries >= 2:
                 self.app.auction_widget.add_bid(bid, highlight=True)
                 self.app.auction_widget.add_bid('Pass')
                 self.app.auction_widget.add_bid('Pass')
@@ -122,6 +120,10 @@ class LessonRobotOpens1NT(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות (נכונה וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

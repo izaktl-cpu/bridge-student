@@ -137,15 +137,15 @@ chk('1C priority: 4♦ before bal → 1♦', respond_minor(h13, 'C'), '1♦', h1
 h14 = build(3, 3, 2, 5, 8)  # 5♣ מאוזן → 2♣ (תמיכה קודמת ל-1NT)
 chk('1C: 5♣ balanced 8hcp → 2♣', respond_minor(h14, 'C'), '2♣', h14)
 
-# 3♣ — לא מאוזן, 5+ קלפי ♣, 11-12
-h15 = build(2, 2, 3, 6, 11)  # 6♣, לא מאוזן, 11 נקודות
-chk('1C: 6♣ nonbal 11hcp → 3♣', respond_minor(h15, 'C'), '3♣', h15)
+# 2NT — חצי-מאוזן (6-3-2-2), 11-12 → מעדיפים NT על העלאת מינור
+h15 = build(2, 2, 3, 6, 11)  # 6♣, חצי-מאוזן, 11 נקודות
+chk('1C: 6♣ semibal 11hcp → 2NT', respond_minor(h15, 'C'), '2NT', h15)
 
-h16 = build(2, 2, 3, 6, 12)  # 6♣, לא מאוזן, 12 נקודות
-chk('1C: 6♣ nonbal 12hcp → 3♣', respond_minor(h16, 'C'), '3♣', h16)
+h16 = build(2, 2, 3, 6, 12)  # 6♣, חצי-מאוזן, 12 נקודות
+chk('1C: 6♣ semibal 12hcp → 2NT', respond_minor(h16, 'C'), '2NT', h16)
 
-h17 = build(2, 3, 2, 6, 11)  # 6♣, לא מאוזן (2-3-2-6)
-chk('1C: 6♣ nonbal2 11hcp → 3♣', respond_minor(h17, 'C'), '3♣', h17)
+h17 = build(2, 3, 2, 6, 11)  # 6♣, חצי-מאוזן (2-3-2-6)
+chk('1C: 6♣ semibal2 11hcp → 2NT', respond_minor(h17, 'C'), '2NT', h17)
 
 # 3NT — לא מאוזן, 5+ קלפי ♣, 13+
 h18 = build(2, 2, 3, 6, 13)
@@ -185,8 +185,8 @@ chk('1D: 4♦ balanced 8hcp → 1NT (not 2♦)', respond_minor(h24, 'D'), '1NT',
 h25 = build(2, 2, 5, 4, 8)
 chk('1D: 5♦ nonbal 8hcp → 2♦', respond_minor(h25, 'D'), '2♦', h25)
 
-h26 = build(2, 2, 4, 5, 9)  # 4♦, לא מאוזן
-chk('1D: 4♦ nonbal 9hcp → 2♦', respond_minor(h26, 'D'), '2♦', h26)
+h26 = build(2, 2, 4, 5, 9)  # 4♦, חצי-מאוזן (2-2-4-5) → מעדיף NT
+chk('1D: 4♦ semibal 9hcp → 1NT', respond_minor(h26, 'D'), '1NT', h26)
 
 # 3♦ — לא מאוזן, 4+♦, 11-12
 h27 = build(2, 2, 5, 4, 11)
@@ -203,9 +203,9 @@ chk('1D: balanced 11hcp → 2NT', respond_minor(h29, 'D'), '2NT', h29)
 h30 = build(3, 3, 3, 4, 13)
 chk('1D: balanced 13hcp → 3NT', respond_minor(h30, 'D'), '3NT', h30)
 
-# 2♣ — 5+ קלפי ♣, 11+, ללא 4+♦
+# חצי-מאוזן (6-3-2-2), 11-12, ללא 4+♦ → מעדיף NT על סדרה חדשה
 h31 = build(2, 2, 3, 6, 11)
-chk('1D: 6♣ no4♦ 11hcp → 2♣', respond_minor(h31, 'D'), '2♣', h31)
+chk('1D: 6♣ semibal 11hcp → 2NT', respond_minor(h31, 'D'), '2NT', h31)
 
 # עדיפות: 4+♦ לפני 2♣
 h32 = build(2, 2, 4, 5, 11)

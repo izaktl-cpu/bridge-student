@@ -1,10 +1,17 @@
 import random
 from lessons.base import BaseLesson
-from engine.deal_constraints import deal_robot_opens_2nt_stayman, deal_robot_opens_2nt_transfer
-from engine.scoring import hcp, distribution
+from engine.deal_constraints import (deal_robot_opens_2nt_stayman,
+                                      deal_robot_opens_2nt_transfer,
+                                      deal_robot_opens_2nt_nt)
+from engine.scoring import hcp, distribution, key_cards
 from engine.cards import SUIT_SYMBOLS
 
 _S = SUIT_SYMBOLS
+
+
+def _gerber_bid(aces):
+    """תשובת גרבר לשאלת 4♣ (אסים בלבד): 0/4→4♦, 1→4♥, 2→4♠, 3→4NT."""
+    return {0: '4♦', 1: '4♥', 2: '4♠', 3: '4NT', 4: '4♦'}[aces]
 
 
 class LessonRobotOpens2NT(BaseLesson):
@@ -38,10 +45,15 @@ class LessonRobotOpens2NT(BaseLesson):
 
     def start(self):
         if not self._replaying:
-            self._mode = random.choice(['stayman', 'transfer'])
-            if self._mode == 'stayman':
+            r = random.random()
+            if r < 0.25:
+                self._mode = 'nt'
+                self.hands = deal_robot_opens_2nt_nt()
+            elif r < 0.625:
+                self._mode = 'stayman'
                 self.hands = deal_robot_opens_2nt_stayman()
             else:
+                self._mode = 'transfer'
                 self.hands = deal_robot_opens_2nt_transfer()
         self._replaying = False
 
@@ -55,16 +67,15 @@ class LessonRobotOpens2NT(BaseLesson):
         self.app.auction_widget.add_bid('2NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction_table(
-            'מחשב פתח 2NT (20-22 נקודות). מה תכריז',
-            [
-                ('3♣',  'סטיימן. 5+ נקודות, 2 רביעיות (אחת מיגור)'),
-                ('3♦',  'טרנספר ל-♥. 5+ קלפי ♥'),
-                ('3♥',  'טרנספר ל-♠. 5+ קלפי ♠'),
-                ('3NT', '5+ נקודות, מאוזן'),
-                ('Pass', '0-4 נקודות\nאין 5 קלפים במיגורים'),
-            ]
-        )
+        self._panel_rows = [
+            ('3♦',  '5+ קלפי ♥'),
+            ('3♥',  '5+ קלפי ♠'),
+            ('3♣',  '5+ נקודות עם רביעייה במייג׳ור'),
+            ('3NT', '5-10 נקודות מאוזן'),
+            ('4♣',  '11-12 נקודות מאוזן שאלת אסים'),
+            ('פס',  '0-4 נקודות'),
+        ]
+        self.app.set_instruction_table('מה תכריז', self._panel_rows)
         self.app.bidding_box.set_last_bid('2NT')
 
     def on_student_bid(self, bid):
@@ -75,6 +86,8 @@ class LessonRobotOpens2NT(BaseLesson):
             self._handle_stayman_cont(bid)
         elif self._stage == 'transfer_cont':
             self._handle_transfer_cont(bid)
+        elif self._stage == 'gerber':
+            self._handle_gerber(bid)
 
     # ── שלב 1: תגובה ראשונית ──────────────────────────────────────────────
 
@@ -86,7 +99,7 @@ class LessonRobotOpens2NT(BaseLesson):
             self._execute_first_bid(bid, self._correct_message(bid))
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -103,7 +116,9 @@ class LessonRobotOpens2NT(BaseLesson):
             return '3♣'
         if h <= 4:
             return 'Pass'
-        return '3NT'
+        if h >= 11:
+            return '4♣'    # 11-12 מאוזן בלי מייג׳ור — גרבר, שאלת אסים
+        return '3NT'       # 5-10
 
     def _execute_first_bid(self, bid, message):
         if bid == 'Pass':
@@ -114,6 +129,9 @@ class LessonRobotOpens2NT(BaseLesson):
             self.app.auction_widget.add_bid('Pass')  # N
             self.app.auction_widget.add_bid('Pass')  # E
             self._finish(message, ok=True)
+        elif bid == '4♣':
+            # S ו-W (Pass) כבר נוספו ב-_handle_respond
+            self._do_gerber_4c()
         elif bid == '3♣':
             self._do_stayman()
         elif bid == '3♦':
@@ -144,23 +162,20 @@ class LessonRobotOpens2NT(BaseLesson):
         self._tries = 0
 
         r = self._stayman_reply
-        reply_text = {'3♦': 'אין מיגור עיקרי', '3♥': 'יש לו ♥', '3♠': 'יש לו ♠, אין ♥'}[r]
+        reply_text = {'3♦': 'אין מיגור עיקרי', '3♥': 'יש לו 4 קלפי ♥', '3♠': 'יש לו 4 קלפי ♠ אין 4 קלפי ♥'}[r]
         fit = self._has_fit()
         fit_suit = self._fit_suit()
         if fit:
-            self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז',
-                [
-                    (f'4{fit_suit}', f'יש התאמה ב-{fit_suit}. משחק מלא'),
-                ]
-            )
+            self._panel_rows = [
+                (f'4{fit_suit}', '5-10 נקודות משחק מלא'),
+                ('4♣',           '11-12 נקודות שאלת אסים'),
+            ]
         else:
-            self.app.set_instruction_table(
-                f'{reply_text}\nמה תכריז',
-                [
-                    ('3NT', 'אין התאמה. יש 5+ נקודות, לך ל-3NT'),
-                ]
-            )
+            self._panel_rows = [
+                ('3NT', '5-10 נקודות'),
+                ('4♣',  '11-12 נקודות שאלת אסים'),
+            ]
+        self.app.set_instruction_table(f'{reply_text}\nמה תכריז', self._panel_rows)
         self.app.bidding_box.set_last_bid(self._stayman_reply)
 
     def _has_fit(self):
@@ -186,7 +201,9 @@ class LessonRobotOpens2NT(BaseLesson):
         if bid == correct:
             self.app.auction_widget.add_bid(bid, highlight=True)  # S
             self.app.auction_widget.add_bid('Pass')               # W
-            if correct.startswith('4'):
+            if correct == '4♣':
+                self._do_gerber_4c()
+            elif correct.startswith('4'):  # 4M התאמה
                 self.app.auction_widget.add_bid('Pass')           # N
                 self.app.auction_widget.add_bid('Pass')           # E
                 self._finish(self._correct_message(bid), ok=True)
@@ -194,7 +211,7 @@ class LessonRobotOpens2NT(BaseLesson):
                 self._after_3nt_no_fit(correct, ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
                 self.app.bidding_box.set_last_bid(self._stayman_reply)
             else:
@@ -202,9 +219,61 @@ class LessonRobotOpens2NT(BaseLesson):
                 self._finish(f'{self._wrong_message(correct)}', ok=False)
 
     def _calc_stayman_cont(self):
+        h = hcp(self.hands['S'])
         if self._has_fit():
-            return f'4{self._fit_suit()}'
-        return '3NT'
+            return '4♣' if h >= 11 else f'4{self._fit_suit()}'
+        return '4♣' if h >= 11 else '3NT'
+
+    def _do_gerber_4c(self):
+        """S הכריז 4♣ גרבר שאלת אסים. N עונה כמה אסים בגובה 4.
+        (S ו-W Pass כבר נוספו למכרז לפני הקריאה.)"""
+        # trump=None → key_cards סופר אסים בלבד. 0/4→4♦, 1→4♥, 2→4♠, 3→4NT.
+        n_aces = key_cards(self.hands['N'], None)
+        self._n_ace_response    = _gerber_bid(n_aces)
+        self._gerber_total_aces = n_aces + key_cards(self.hands['S'], None)
+
+        self.app.auction_widget.add_bid(self._n_ace_response)  # N עונה אסים
+        self.app.auction_widget.add_bid('Pass')                # E
+
+        self._stage = 'gerber'
+        self._tries = 0
+        explain = {'4♦': '0 או 4 אסים', '4♥': '1 אס',
+                   '4♠': '2 אסים', '4NT': '3 אסים'}[self._n_ace_response]
+        # סגירה נמוכה. אם N ענה 4NT (3 אסים) — 4NT כבר תפוס, סוגרים בפס.
+        low = 'פס' if self._n_ace_response == '4NT' else '4NT'
+        self._panel_rows = [
+            ('6NT', '4 אסים ו-32+ נקודות משותפות'),
+            (low,   'חסר אס או פחות מ-32 נקודות'),
+        ]
+        self.app.set_instruction_table(
+            f'N ענה {self._n_ace_response}\n{explain}\nמה תכריז', self._panel_rows)
+        self.app.bidding_box.set_last_bid(self._n_ace_response)
+
+    def _handle_gerber(self, bid):
+        total    = self._gerber_total_aces
+        combined = hcp(self.hands['N']) + hcp(self.hands['S'])
+        if total >= 4 and combined >= 32:
+            correct = '6NT'
+        else:
+            # חסר אס או מעט נקודות — סוגרים נמוך. אם N ענה 4NT סוגרים בפס.
+            correct = 'Pass' if self._n_ace_response == '4NT' else '4NT'
+        extra   = f'{total} אסים {combined} נקודות משותפות'
+        display = '4NT' if correct == 'Pass' else correct
+        if bid == correct:
+            self.app.auction_widget.add_bid(bid, highlight=True)  # S
+            self.app.auction_widget.add_bid('Pass')               # W
+            if bid != 'Pass':
+                self.app.auction_widget.add_bid('Pass')           # N
+                self.app.auction_widget.add_bid('Pass')           # E
+            self._finish(self._correct_message(display, extra_line=extra), ok=True)
+        else:
+            self._tries += 1
+            if self._tries < 3:
+                self.app.set_feedback('נסה שוב', ok=False)
+                self.app.bidding_box.set_last_bid(self._n_ace_response)
+            else:
+                self.app.auction_widget.add_bid(bid, highlight=True)  # S
+                self._finish(self._wrong_message(display, extra_line=extra), ok=False)
 
     def _after_3nt_no_fit(self, correct, ok=True):
         # S=3NT and W=Pass already added; check if N corrects to 4♠
@@ -239,13 +308,14 @@ class LessonRobotOpens2NT(BaseLesson):
         h = hcp(self.hands['S'])
         d = distribution(self.hands['S'])
         suit_len = d['H'] if target_sym == '♥' else d['S']
+        self._panel_rows = [
+            ('פס',              '0-4 נקודות'),
+            ('3NT',             f'5+ נקודות 5 קלפי {target_sym} בדיוק'),
+            (f'4{target_sym}',  f'5+ נקודות 6+ קלפי {target_sym}'),
+        ]
         self.app.set_instruction_table(
             f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז',
-            [
-                ('Pass',            'עד 4 נקודות. עצור ב-3'),
-                ('3NT',             f'5+ נקודות, 5 קלפי {target_sym} בדיוק. הפותח יבחר'),
-                (f'4{target_sym}',  f'5+ נקודות, 6+ קלפי {target_sym}'),
-            ]
+            self._panel_rows,
         )
         self.app.bidding_box.set_last_bid(response_bid)
 
@@ -270,7 +340,7 @@ class LessonRobotOpens2NT(BaseLesson):
                 self._finish(self._correct_message(bid, extra_line=f'יש {suit_len} קלפי {sym}'), ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -311,6 +381,10 @@ class LessonRobotOpens2NT(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות הרלוונטית (נכון וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.table.show_hands(self.hands, visible=('N', 'E', 'S', 'W'))
         self.app.show_new_deal_button()

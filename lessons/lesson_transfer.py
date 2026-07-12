@@ -49,8 +49,18 @@ class LessonTransfer(BaseLesson):
         self.app.auction_widget.add_bid('1NT')
         self.app.auction_widget.add_bid('Pass')
 
-        self.app.set_instruction('מחשב פתח 1NT. מה תכריז')
+        self._set_respond_instruction()
         self.app.bidding_box.set_last_bid('1NT')
+
+    def _set_respond_instruction(self):
+        self._panel_rows = [
+            ('2♦',  '5+ קלפי ♥'),
+            ('2♥',  '5+ קלפי ♠'),
+            ('2NT', '8-9 נקודות בלי מייג׳ור חמישייה'),
+            ('3NT', '10+ נקודות בלי מייג׳ור חמישייה'),
+            ('פס',  '0-7 נקודות בלי מייג׳ור חמישייה'),
+        ]
+        self.app.set_instruction_table('מה תכריז', self._panel_rows)
 
     def on_student_bid(self, bid):
         if self._handle_close(bid): return
@@ -69,7 +79,7 @@ class LessonTransfer(BaseLesson):
             self._execute_first_bid(bid, self._correct_message(bid))
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -130,15 +140,16 @@ class LessonTransfer(BaseLesson):
         h = hcp(self.hands['S'])
         key = 'H' if target_sym == '♥' else 'S'
         suit_len = distribution(self.hands['S'])[key]
+        self._panel_rows = [
+            ('פס',                '0-7 נקודות'),
+            ('2NT',               f'8-9 נקודות 5 קלפי {target_sym} בדיוק'),
+            (f'3{target_sym}',    f'8-9 נקודות 6+ קלפי {target_sym}'),
+            ('3NT',               f'10+ נקודות 5 קלפי {target_sym} בדיוק'),
+            (f'4{target_sym}',    f'10+ נקודות 6+ קלפי {target_sym}'),
+        ]
         self.app.set_instruction_table(
             f'יש {suit_len} קלפי {target_sym} ו-{h} נקודות\nמה תכריז',
-            [
-                ('Pass',              '0-7 נקודות'),
-                ('2NT',               f'8-9 נקודות, 5 קלפי {target_sym} בדיוק'),
-                (f'3{target_sym}',    f'8-9 נקודות, 6+ קלפי {target_sym}'),
-                ('3NT',               f'10+ נקודות, 5 קלפי {target_sym} בדיוק'),
-                (f'4{target_sym}',    f'10+ נקודות, 6+ קלפי {target_sym}'),
-            ]
+            self._panel_rows,
         )
         self.app.bidding_box.set_last_bid(response_bid)
 
@@ -179,7 +190,7 @@ class LessonTransfer(BaseLesson):
                 self._after_3nt(correct, ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)  # S
@@ -252,6 +263,10 @@ class LessonTransfer(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        # בסוף כל יד — מציגים את טבלת האפשרויות הרלוונטית (נכונה וגם טעות)
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.set_feedback(message, ok=ok)
         self.app.show_all_hands()
         self.app.show_new_deal_button()

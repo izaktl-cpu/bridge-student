@@ -47,6 +47,11 @@ class LessonNegativeDouble(BaseLesson):
     def _wrong_message(self, correct):
         return f'{self._expl}\nההכרזה הנכונה\n{correct}'
 
+    def _table(self, header, rows):
+        """שומר את שורות הטבלה (לתצוגה בסיום) ומציג את הכותרת."""
+        self._panel_rows = rows
+        self.app.set_instruction_table(header, rows)
+
     def start(self):
         self._awaiting_close = False
         self._agreed_suit    = None
@@ -119,16 +124,16 @@ class LessonNegativeDouble(BaseLesson):
         mn_bid = f'{mn_lvl}{mn_sym}' if unbid_minor else '—'
 
         rows = [
-            (um_bid,              f'5+ {um_sym}, {um_hcp}+ נקודות'),
-            ('3NT',               f'13+ נקודות, עוצר ב{es}'),
-            (f'קיו {es}',         f'13+ נקודות, אין עוצר'),
-            ('2NT',               f'11–12 נקודות, עוצר ב{es}'),
-            (mn_bid,              f'5+ {mn_sym}, 11+ נקודות'),
-            ('X',                 f'8+ נקודות, 4 {um_sym}'),
-            ('1NT',               f'7–10 נקודות, עוצר ב{es}'),
+            (um_bid,              f'5+ {um_sym} {um_hcp}+ נקודות'),
+            ('3NT',               f'13+ נקודות עוצר ב{es}'),
+            (f'קיו {es}',         f'13+ נקודות אין עוצר'),
+            ('2NT',               f'11-12 נקודות עוצר ב{es}'),
+            (mn_bid,              f'5+ {mn_sym} 11+ נקודות'),
+            ('X',                 f'8+ נקודות 4 {um_sym}'),
+            ('1NT',               f'7-10 נקודות עוצר ב{es}'),
             ('פס',                'אין מספיק'),
         ]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             rows
         )
@@ -179,7 +184,7 @@ class LessonNegativeDouble(BaseLesson):
                     ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -218,11 +223,11 @@ class LessonNegativeDouble(BaseLesson):
 
         rows = [
             (um_bid,  f'3+ קלפי {um_sym}'),
-            (nt_bid,  f'12+ נקודות, עוצר ב{es}'),
+            (nt_bid,  f'12+ נקודות עוצר ב{es}'),
             (mn_bid,  f'4+ קלפי {mn_sym}'),
-            (ns_bid,  f'חזרה ל{_suit_sym(self._n_suit)}'),
+            (ns_bid,  f'חזרה ל{_suit_sym}'),
         ]
-        self.app.set_instruction_table(
+        self._table(
             'מה תכריז',
             rows
         )
@@ -240,7 +245,7 @@ class LessonNegativeDouble(BaseLesson):
             self._finish(f'{self._next_opener()}\n{self._expl}\nההכרזה הנכונה\n{bid}', ok=True)
         else:
             self._tries += 1
-            if self._tries < 2:
+            if self._tries < 3:
                 self.app.set_feedback('נסה שוב', ok=False)
             else:
                 self.app.auction_widget.add_bid(bid, highlight=True)
@@ -315,6 +320,9 @@ class LessonNegativeDouble(BaseLesson):
         self._seal_auction()
         self.app.bidding_box.disable()
         self.app.set_instruction('')
+        rows = getattr(self, '_panel_rows', None)
+        if rows:
+            self.app.add_immediate_table(rows)
         self.app.show_all_hands()
         self.app.set_feedback(message, ok=ok, correct_answer=correct_answer)
         self.app.show_new_deal_button()
