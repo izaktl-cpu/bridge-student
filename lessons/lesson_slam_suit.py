@@ -54,7 +54,10 @@ class LessonSlamSuit(BaseLesson):
                 self.app.bidding_box.enable(),
                 self.app.set_instruction('שגיאה בחלוקה נסה שנית')
             ))
-        threading.Thread(target=_deal, daemon=True).start()
+        # חלוקה סינכרונית — מהירה מספיק, ועובדת גם ב-web (בלי GUI event-loop).
+        # קודם היה thread נפרד כדי לא להקפיא את tkinter; ב-web זה גרם ל-start()
+        # לחזור לפני שהיד מוכנה. after(0, ...) עדיין תקין בשתי הסביבות.
+        _deal()
 
     def _setup_ui(self):
         self._trump_sym = _S[self._trump]

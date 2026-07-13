@@ -8,3 +8,6 @@ error.log
 last_mistake.json
 mistakes_queue.json
 .pytest_cache/
+
+# דיווחי "נתקעתי" — נתוני ריצה
+web/reports/

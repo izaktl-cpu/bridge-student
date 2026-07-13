@@ -1,0 +1,253 @@
+:root {
+  --blue: #1a3a6b;
+  --blue-mid: #2a5a9b;
+  --blue-light: #e8edf8;
+  --felt: #1e5c1e;
+  --felt-dark: #164516;
+  --red: #cc1111;
+  --black: #222222;
+  --panel-bg: #ffffff;
+  --ok: #1c7c3a;
+  --wrong: #c0392b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Gisha', 'Segoe UI', 'Arial Hebrew', Arial, sans-serif;
+  background: #f0f3f9;
+  color: var(--black);
+  direction: rtl;
+}
+
+/* מספרים והכרזות — אשכול לטיני אטומי שלא מתהפך בתוך עברית */
+.bid, .num, bdi { unicode-bidi: isolate; }
+
+header {
+  text-align: center;
+  padding: 8px;
+  background: var(--blue-light);
+}
+header h1 { margin: 0; font-size: 20px; color: var(--blue); }
+
+/* ── סרגל שיעורים ── */
+#lesson-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  background: var(--blue-light);
+}
+.lesson-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+.lesson-btn {
+  border: none;
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--blue-mid);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s;
+}
+.lesson-btn:hover { background: var(--blue); }
+.lesson-btn.active { background: var(--blue); box-shadow: 0 0 0 2px #ffd24d inset; }
+
+/* ── פריסה ראשית ── */
+main {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  align-items: flex-start;
+  justify-content: center;
+}
+/* ההכרזה (side) מימין, השולחן משמאל */
+#side { order: 0; }
+#table-area { order: 1; }
+
+/* ── שולחן ── */
+#table-area {
+  flex: 1 1 460px;
+  max-width: 620px;
+  min-width: 320px;
+  max-height: calc(100dvh - 150px);
+  aspect-ratio: 1.15 / 1;
+  background: var(--felt);
+  border-radius: 16px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  grid-template-rows: 1fr 1.2fr 1fr;
+  gap: 6px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+.seat-n { grid-column: 2; grid-row: 1; align-self: start; }
+.seat-e { grid-column: 1; grid-row: 2; align-self: center; }
+.center { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.seat-w { grid-column: 3; grid-row: 2; align-self: center; }
+.seat-s { grid-column: 2; grid-row: 3; align-self: end; }
+
+.seat {
+  background: var(--panel-bg);
+  border-radius: 8px;
+  border: 1px solid #aaa;
+  padding: 5px 7px;
+  min-height: 70px;
+  font-size: 15px;
+}
+.seat .seat-name { font-weight: 700; font-size: 12px; text-align: center; color: #333; }
+.seat .seat-hcp { font-size: 11px; color: #666; text-align: center; margin-bottom: 2px; }
+.seat.hidden-hand { opacity: .9; }
+.suit-row { display: flex; align-items: center; gap: 4px; line-height: 1.35; direction: ltr; justify-content: flex-start; }
+.suit-sym { width: 18px; font-size: 18px; text-align: center; }
+.suit-sym.red, .suit-cards.red { color: var(--red); }
+.suit-sym.black, .suit-cards.black { color: var(--black); }
+.suit-cards { font-weight: 600; letter-spacing: 1px; }
+
+/* מצפן */
+.compass {
+  position: relative;
+  width: 46px; height: 46px;
+  color: #fff; font-weight: 700; font-size: 13px;
+}
+.compass span { position: absolute; }
+.compass .c-n { top: 0; left: 50%; transform: translateX(-50%); }
+.compass .c-s { bottom: 0; left: 50%; transform: translateX(-50%); }
+.compass .c-w { top: 50%; left: 0; transform: translateY(-50%); }
+.compass .c-e { top: 50%; right: 0; transform: translateY(-50%); }
+
+/* מכרז */
+#auction {
+  background: var(--blue-light);
+  border: 1px solid #b0bcd8;
+  border-radius: 6px;
+  padding: 4px 6px;
+  min-width: 150px;
+  direction: ltr;
+}
+.auction-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px 6px; text-align: center; }
+.auction-grid .ah { font-weight: 700; color: var(--blue); font-size: 12px; border-bottom: 1px solid #b0bcd8; padding-bottom: 2px; }
+.auction-grid .ac { font-size: 14px; min-height: 18px; }
+.auction-grid .ac.hl { font-weight: 800; }
+
+/* ── צד שמאל: פנל, משוב, הכרזה ── */
+#side {
+  flex: 0 0 340px;
+  max-width: 360px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* סדר בעמודה הימנית: פנל, תיבת הכרזה, משוב, בקרות */
+#panel        { order: 0; }
+#bidding-box  { order: 1; }
+#feedback     { order: 2; }
+#controls     { order: 3; }
+
+#panel {
+  background: var(--panel-bg);
+  border: 1px solid #d3dcec;
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 40px;
+  text-align: center;
+}
+.panel-header { font-weight: 700; color: var(--blue); font-size: 16px; margin-bottom: 6px; }
+.panel-text { color: var(--blue); font-size: 15px; line-height: 1.5; }
+.panel-text .line { margin: 2px 0; }
+
+.opt-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+.opt-table th { color: var(--blue); font-weight: 700; padding: 3px 8px; border-bottom: 1px solid #d3dcec; }
+.opt-table td { padding: 3px 8px; color: #444; text-align: center; }
+.opt-table td.opt-bid { font-weight: 700; }
+
+#feedback {
+  border-radius: 10px;
+  padding: 0;
+  font-size: 17px;
+  text-align: center;
+  line-height: 1.5;
+}
+#feedback.show { padding: 12px; }
+#feedback.ok { background: #e5f6ea; color: var(--ok); border: 1px solid #b6e2c4; }
+#feedback.wrong { background: #fdece9; color: var(--wrong); border: 1px solid #f3c6bf; }
+#feedback .fb-line { margin: 1px 0; }
+#feedback .fb-big { font-size: 20px; font-weight: 800; }
+
+/* תיבת הכרזה */
+#bidding-box {
+  background: var(--blue-light);
+  border: 1px solid #b0c0d8;
+  border-radius: 10px;
+  padding: 6px;
+}
+.bb-title { text-align: center; color: var(--blue); font-weight: 700; margin-bottom: 4px; font-size: 14px; }
+.bb-row { display: flex; justify-content: center; gap: 4px; margin: 2px 0; }
+.bb-btn {
+  min-width: 44px; height: 27px;
+  border: none; border-radius: 6px;
+  color: #fff; font-weight: 700; font-size: 14px;
+  cursor: pointer;
+  unicode-bidi: isolate;
+}
+.bb-btn:disabled { background: #c9cdd6 !important; color: #8a8f99; cursor: default; }
+.bb-btn.s-clubs { background: #7a4a1a; }
+.bb-btn.s-diamonds { background: #e06000; }
+.bb-btn.s-hearts { background: #cc1111; }
+.bb-btn.s-spades { background: #222; }
+.bb-btn.s-nt { background: #1a3a8b; }
+.bb-btn.s-pass { background: #4a7a4a; }
+.bb-btn.s-x { background: #cc1111; }
+.bb-btn.s-xx { background: #880000; }
+
+/* בקרות */
+#controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.ctl { flex: 1; border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; }
+.ctl-new { background: #2a7a2a; }
+.ctl-replay { background: #5a3a80; }
+.ctl-stuck { background: #b05a00; flex-basis: 100%; }
+
+/* חלונית "נתקעתי" */
+#stuck-modal {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-box {
+  background: #fff; border-radius: 14px; padding: 18px 20px;
+  max-width: 420px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,.3);
+}
+.modal-title { font-size: 18px; font-weight: 800; color: var(--blue); margin-bottom: 6px; text-align: center; }
+.modal-sub { font-size: 14px; color: #555; margin-bottom: 10px; text-align: center; line-height: 1.4; }
+#stuck-note {
+  width: 100%; border: 1px solid #c3cde0; border-radius: 8px;
+  padding: 8px; font-size: 15px; font-family: inherit; resize: vertical;
+}
+.modal-btns { display: flex; gap: 8px; margin-top: 12px; }
+.modal-btns .ctl { flex: 1; }
+
+#toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #222; color: #fff; padding: 12px 20px; border-radius: 8px;
+  font-size: 15px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 50;
+}
+#toast.show { opacity: 1; }
+
+@media (max-width: 700px) {
+  main { flex-direction: column; align-items: center; }
+  #side { order: 1; flex-basis: auto; width: 100%; max-width: 460px; }
+  #table-area { order: 0; width: 100%; max-height: 52vh; }
+  /* כפתורי הכרזה גדולים יותר למגע בטלפון */
+  .bb-btn { height: 34px; min-width: 52px; font-size: 16px; }
+  .bb-row { gap: 5px; margin: 3px 0; }
+  .ctl { padding: 12px; font-size: 15px; }
+}

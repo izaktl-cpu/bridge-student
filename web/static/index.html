@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>עוזר ברידג׳ לתלמיד</title>
+  <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+  <header>
+    <h1>עוזר ברידג׳ לתלמיד</h1>
+  </header>
+
+  <nav id="lesson-bar"></nav>
+
+  <main>
+    <section id="table-area">
+      <div class="seat seat-n" data-seat="N"></div>
+      <div class="seat seat-w" data-seat="W"></div>
+      <div class="center">
+        <div class="compass">
+          <span class="c-n">N</span>
+          <span class="c-w">W</span>
+          <span class="c-e">E</span>
+          <span class="c-s">S</span>
+        </div>
+        <div id="auction"></div>
+      </div>
+      <div class="seat seat-e" data-seat="E"></div>
+      <div class="seat seat-s" data-seat="S"></div>
+    </section>
+
+    <aside id="side">
+      <div id="panel"></div>
+      <div id="feedback"></div>
+      <div id="bidding-box"></div>
+      <div id="controls">
+        <button id="btn-new" class="ctl ctl-new">יד חדשה ◀</button>
+        <button id="btn-replay" class="ctl ctl-replay">שחק שוב ↺</button>
+        <button id="btn-stuck" class="ctl ctl-stuck" title="שלח דיווח למורה">נתקעתי? 🆘</button>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/app.js?v=5"></script>
+</body>
+</html>

@@ -70,8 +70,12 @@ def _lesson8_check(mode, hands, idx, errors):
 
     total = hn + hs
 
-    # בדיקות טווח HCP
-    ranges = {'A': ((15,17),(14,18)), 'B': ((20,22),(9,13)), 'C': ((12,14),(17,21))}
+    # בדיקות טווח HCP — טווחי S הם איחוד כל התרחישים של המחלק
+    # (r
+    #  A: plain S=0-15, slam S=16-18, grand S=20-21
+    #  B: plain S=5-12, slam S=13-15, grand S=17-18
+    #  C: non-slam S=14-20, slam S=17-21 ; N=12-16)
+    ranges = {'A': ((15,17),(0,21)), 'B': ((20,22),(5,18)), 'C': ((12,16),(14,21))}
     n_lo, n_hi = ranges[mode][0]
     s_lo, s_hi = ranges[mode][1]
     if not (n_lo <= hn <= n_hi):
@@ -174,11 +178,11 @@ def _lesson9_check(trump, hands, idx, errors):
         cb_bw = _lesson9_computer_bw(n_kc)
         sb2   = _lesson9_student_bid2(n_kc, s_kc, trump_sym)
 
-    # בדיקות טווח — N: 12-19 (מה-deal בפועל), S: 15-19
+    # בדיקות טווח — N: 12-19, S: 8-17 (game S=8-14, slam/stop S=14-17)
     if not (12 <= hn <= 19):
         errors.append(f'#{idx} ({trump}): N HCP={hn} מחוץ לטווח 12-19')
-    if not (15 <= hs <= 19):
-        errors.append(f'#{idx} ({trump}): S HCP={hs} מחוץ לטווח 15-19')
+    if not (8 <= hs <= 17):
+        errors.append(f'#{idx} ({trump}): S HCP={hs} מחוץ לטווח 8-17')
     if not (0 <= n_kc <= 5):
         errors.append(f'#{idx} ({trump}): N key_cards={n_kc} בלתי-חוקי')
     if not (0 <= s_kc <= 5):

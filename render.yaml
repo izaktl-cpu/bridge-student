@@ -1,0 +1,22 @@
+# הגדרת פריסה ל-Render — עוזר ברידג' לתלמיד (גרסת web)
+# פריסה: מחברים את הריפו ל-Render → הוא קורא את הקובץ הזה אוטומטית.
+services:
+  - type: web
+    name: bridge-student
+    runtime: python
+    plan: free
+    # מתקין רק את תלויות ה-web (בלי customtkinter — השרת headless)
+    buildCommand: pip install -r web/requirements.txt
+    # Render מספק את הפורט במשתנה $PORT
+    startCommand: uvicorn web.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      # מייל דיווחי "נתקעתי" — למלא ב-Render Dashboard (Environment):
+      #   RESEND_API_KEY  — המפתח מ-resend.com
+      #   REPORT_EMAIL    — izaktl@gmail.com (ברירת מחדל בקוד)
+      #   RESEND_FROM     — כתובת שולח מאומתת (ברירת מחדל onboarding@resend.dev)
+      - key: RESEND_API_KEY
+        sync: false
+      - key: REPORT_EMAIL
+        value: izaktl@gmail.com
