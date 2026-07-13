@@ -1,0 +1,21 @@
+name: keep-alive
+
+# מעיר את שרת Render החינמי כדי שלא יירדם.
+# הגרסה החינמית של Render נרדמת אחרי ~15 דק' חוסר פעילות,
+# ואז הכניסה הראשונה מתעכבת ~50 שנ'. פינג כל 10 דק' שומר אותו ער.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # כל 10 דקות
+  workflow_dispatch: {}        # מאפשר הרצה ידנית מכפתור ב-GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          echo "Pinging bridge-student at $(date -u)"
+          curl -sSf --max-time 60 https://bridge-student.onrender.com/health
+          echo ""
+          echo "OK"
