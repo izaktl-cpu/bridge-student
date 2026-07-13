@@ -60,6 +60,9 @@ header h1 { margin: 0; font-size: 20px; color: var(--blue); }
 .lesson-btn:hover { background: var(--blue); }
 .lesson-btn.active { background: var(--blue); box-shadow: 0 0 0 2px #ffd24d inset; }
 
+/* תצוגת מובייל מוסתרת במחשב */
+#m-view { display: none; }
+
 /* ── פריסה ראשית ── */
 main {
   display: flex;
@@ -244,14 +247,53 @@ main {
 
 @media (max-width: 700px) {
   main { flex-direction: column; align-items: center; }
+  /* במובייל: מסתירים את שולחן המחשב ואת המשוב הצדדי — מציגים את תצוגת המובייל */
+  #table-area { display: none; }
+  #feedback { display: none; }
+  #m-view { display: block; order: 0; width: 100%; max-width: 460px; }
   #side { order: 1; flex-basis: auto; width: 100%; max-width: 460px; }
-  /* בטלפון: שהשולחן יגדל לפי התוכן ולא יידחס — אחרת יד South גולשת ומכסה את המכרז */
-  #table-area {
-    order: 0; width: 100%;
-    aspect-ratio: auto;
-    max-height: none;
-    grid-template-rows: auto auto auto;
+
+  /* הריבוע: אותיות בקצוות, מרכז גדול, גדל לפי התוכן */
+  #m-table {
+    position: relative;
+    width: 100%;
+    background: var(--felt);
+    border-radius: 16px;
+    padding: 34px 60px;
+    box-sizing: border-box;
+    min-height: 230px;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
   }
+  .m-seat { position: absolute; color: #fff; font-weight: 700; font-size: 21px; text-align: center; }
+  .m-seat[data-seat="N"] { top: 8px; left: 0; right: 0; }
+  .m-seat[data-seat="S"] { bottom: 8px; left: 0; right: 0; }
+  .m-seat[data-seat="W"] { left: 12px; top: 50%; transform: translateY(-50%); width: 44px; }
+  .m-seat[data-seat="E"] { right: 12px; top: 50%; transform: translateY(-50%); width: 44px; }
+  /* קו צהוב רחב ובולט מתחת לאות של מי שתורו להכריז */
+  .m-seat.active::after {
+    content: ''; display: block; width: 44px; height: 6px;
+    background: #ffd24d; border-radius: 3px; margin: 5px auto 0;
+  }
+
+  .m-center { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  #m-auction { background: rgba(255,255,255,.95); border: 1px solid #b0bcd8; border-radius: 8px; padding: 5px 6px; direction: ltr; }
+  #m-feedback { display: none; }
+  #m-feedback.show { display: block; border-radius: 10px; padding: 12px 8px; text-align: center; }
+  #m-feedback.ok { background: #e5f6ea; color: var(--ok); border: 1px solid #b6e2c4; }
+  #m-feedback.wrong { background: #fdece9; color: var(--wrong); border: 1px solid #f3c6bf; }
+  .m-fb-line { font-size: 16px; margin: 2px 0; }
+  .m-fb-big { font-size: 22px; font-weight: 800; }
+
+  /* היד שלך + הידיים שנחשפות בסוף */
+  .m-hand { background: var(--panel-bg); border: 1px solid #d3dcec; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; }
+  .m-hand.mine { border: 2px solid #ffd24d; }
+  .m-hand-name { font-weight: 700; color: var(--blue); text-align: center; font-size: 15px; }
+  .m-hand-suits { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; direction: ltr; margin-top: 4px; }
+  .m-suit { white-space: nowrap; letter-spacing: 1px; font-weight: 600; font-size: 16px; }
+  .m-suit .suit-sym { font-size: 17px; }
+
   /* כפתורי הכרזה גדולים יותר למגע בטלפון */
   .bb-btn { height: 34px; min-width: 52px; font-size: 16px; }
   .bb-row { gap: 5px; margin: 3px 0; }

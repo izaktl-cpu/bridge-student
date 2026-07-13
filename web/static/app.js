@@ -72,6 +72,7 @@ function render(state) {
   renderPanel(state.panel);
   renderFeedback(state.feedback);
   renderBiddingBox(state.bidding_box);
+  renderMobile(state);
 }
 
 function markActiveLesson() {
@@ -108,8 +109,7 @@ function renderHands(hands) {
   });
 }
 
-function renderAuction(auction) {
-  const el = document.getElementById('auction');
+function auctionGridHTML(auction) {
   const dealerIdx = PLAYERS.indexOf(auction.dealer);
   let cells = [];
   // תאים ריקים עד המחלק
@@ -124,7 +124,57 @@ function renderAuction(auction) {
     html += `<div class="ac${hl}"><span class="bid">${bidText(c.bid)}</span></div>`;
   });
   html += '</div>';
-  el.innerHTML = html;
+  return html;
+}
+
+function renderAuction(auction) {
+  document.getElementById('auction').innerHTML = auctionGridHTML(auction);
+}
+
+// ── תצוגת מובייל: אותיות בקצוות, מכרז+משוב במרכז, הידיים למטה ─────────────────
+function handHTML(seat, h, mine) {
+  if (!h || !h.visible) return '';
+  const name = mine ? '★ היד שלך (South)' : SEAT_NAME[seat];
+  let html = `<div class="m-hand${mine ? ' mine' : ''}">`;
+  html += `<div class="m-hand-name">${name} &nbsp;<bdi>${h.hcp}</bdi> נק׳</div>`;
+  html += '<div class="m-hand-suits">';
+  ['S', 'H', 'D', 'C'].forEach(s => {
+    const cards = h.suits[s];
+    const txt = cards.length ? cards.join(' ') : '—';
+    const cls = SUIT_RED[s] ? 'red' : 'black';
+    html += `<span class="m-suit"><span class="suit-sym ${cls}">${SUIT_SYM[s]}</span> ` +
+            `<span class="${cls}">${txt}</span></span>`;
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function renderMobile(state) {
+  const a = state.auction;
+  // מי צריך להכריז — המושב הבא אחרי ההכרזה האחרונה (סדר: N E S W)
+  const dealerIdx = PLAYERS.indexOf(a.dealer);
+  const activeSeat = state.done ? null : PLAYERS[(dealerIdx + a.bids.length) % 4];
+  document.querySelectorAll('#m-table .m-seat').forEach(el => {
+    el.classList.toggle('active', el.dataset.seat === activeSeat);
+  });
+
+  document.getElementById('m-auction').innerHTML = auctionGridHTML(a);
+
+  const mf = document.getElementById('m-feedback');
+  const fb = state.feedback;
+  if (fb.shown && (fb.text || fb.ok)) {
+    mf.className = 'show ' + (fb.ok ? 'ok' : 'wrong');
+    const lines = (fb.text || (fb.ok ? 'נכון' : '')).split('\n').filter(l => l.trim());
+    mf.innerHTML = lines.map((l, i) =>
+      `<div class="m-fb-line${i === 0 ? ' m-fb-big' : ''}">${htmlBids(l)}</div>`).join('');
+  } else {
+    mf.className = ''; mf.innerHTML = '';
+  }
+
+  document.getElementById('m-myhand').innerHTML = handHTML('S', state.hands.S, true);
+  const others = ['N', 'E', 'W'].filter(s => state.hands[s] && state.hands[s].visible);
+  document.getElementById('m-otherhands').innerHTML =
+    others.map(s => handHTML(s, state.hands[s], false)).join('');
 }
 
 function renderPanel(panel) {

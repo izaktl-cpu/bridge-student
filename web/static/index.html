@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>עוזר ברידג׳ לתלמיד</title>
-  <link rel="stylesheet" href="/static/style.css?v=6">
+  <link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
   <header>
@@ -40,8 +40,24 @@
         <button id="btn-stuck" class="ctl ctl-stuck" title="שלח דיווח למורה">נתקעתי? 🆘</button>
       </div>
     </aside>
+
+    <!-- תצוגת מובייל: ריבוע עם אותיות בקצוות, מכרז+משוב במרכז, היד שלך מתחת -->
+    <div id="m-view">
+      <div id="m-table">
+        <span class="m-seat" data-seat="N">N</span>
+        <span class="m-seat" data-seat="W">W</span>
+        <span class="m-seat" data-seat="E">E</span>
+        <span class="m-seat" data-seat="S">S</span>
+        <div class="m-center">
+          <div id="m-auction"></div>
+          <div id="m-feedback"></div>
+        </div>
+      </div>
+      <div id="m-myhand"></div>
+      <div id="m-otherhands"></div>
+    </div>
   </main>
 
-  <script src="/static/app.js?v=6"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>
