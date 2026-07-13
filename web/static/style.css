@@ -245,7 +245,13 @@ main {
 @media (max-width: 700px) {
   main { flex-direction: column; align-items: center; }
   #side { order: 1; flex-basis: auto; width: 100%; max-width: 460px; }
-  #table-area { order: 0; width: 100%; max-height: 52vh; }
+  /* בטלפון: שהשולחן יגדל לפי התוכן ולא יידחס — אחרת יד South גולשת ומכסה את המכרז */
+  #table-area {
+    order: 0; width: 100%;
+    aspect-ratio: auto;
+    max-height: none;
+    grid-template-rows: auto auto auto;
+  }
   /* כפתורי הכרזה גדולים יותר למגע בטלפון */
   .bb-btn { height: 34px; min-width: 52px; font-size: 16px; }
   .bb-row { gap: 5px; margin: 3px 0; }
