@@ -62,6 +62,19 @@ async function loadLessons() {
   });
 }
 
+// בנייד המשוב מוצמד לתיבת המכרז במרכז השולחן; בדסקטופ נשאר בסיידבר.
+const _fbMobileMQ = window.matchMedia('(max-width: 700px)');
+function placeFeedback() {
+  const fb = document.getElementById('feedback');
+  if (!fb) return;
+  if (_fbMobileMQ.matches) {
+    document.querySelector('.center').appendChild(fb);              // נייד: מתחת למכרז
+  } else {
+    document.getElementById('side')
+      .insertBefore(fb, document.getElementById('bidding-box'));    // דסקטופ: בסיידבר (order:2)
+  }
+}
+
 // ── ציור ───────────────────────────────────────────────────────────────────
 function render(state) {
   STATE = state;
@@ -70,6 +83,7 @@ function render(state) {
   renderHands(state.hands);
   renderAuction(state.auction);
   renderPanel(state.panel);
+  placeFeedback();
   renderFeedback(state.feedback);
   renderBiddingBox(state.bidding_box);
   markActiveSeat(state);
@@ -287,6 +301,9 @@ function reportStuck() {
 }
 
 // ── אתחול ───────────────────────────────────────────────────────────────────
+_fbMobileMQ.addEventListener('change', placeFeedback);
+placeFeedback();
+
 document.getElementById('btn-new').onclick = () => newDeal(LESSON_IDX);
 document.getElementById('btn-replay').onclick = () => replay();
 document.getElementById('btn-stuck').onclick = () => reportStuck();

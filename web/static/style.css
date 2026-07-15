@@ -260,4 +260,16 @@ main {
   .bb-btn { height: 34px; min-width: 52px; font-size: 16px; }
   .bb-row { gap: 5px; margin: 3px 0; }
   .ctl { padding: 12px; font-size: 15px; }
+
+  /* בנייד: המצפן מיותר (הכיוונים כבר על הידיים) — מוסתר.
+     המשוב ("כל הכבוד"/ההסברים) מועבר ב-JS אל .center ומוצמד למכרז. */
+  .compass { display: none; }
+  .center > #feedback {
+    width: 100%;
+    min-width: 150px;
+    max-width: 220px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .center > #feedback.show { padding: 8px 10px; }
 }
