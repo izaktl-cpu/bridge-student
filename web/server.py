@@ -3,6 +3,7 @@
 מריץ את השיעורים ללא שינוי דרך מתאם ה-View המנותק (web_view.WebApp).
 """
 import os
+import re
 import sys
 import uuid
 import importlib
@@ -13,7 +14,7 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -187,9 +188,29 @@ def replay(req: BidReq):
 _STATIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
 
 
+def _asset_version():
+    """חותם גרסה לפי זמן העדכון של הקבצים הסטטיים.
+
+    בלעדיו צריך להעלות ידנית את ?v=N ב-index.html בכל שינוי, ומי ששכח —
+    התלמידים ממשיכים לקבל את הגרסה הישנה מהמטמון של הדפדפן.
+    """
+    times = []
+    for name in ('app.js', 'style.css'):
+        path = os.path.join(_STATIC, name)
+        if os.path.exists(path):
+            times.append(int(os.path.getmtime(path)))
+    return str(max(times)) if times else '0'
+
+
 @app.get('/')
 def index():
-    return FileResponse(os.path.join(_STATIC, 'index.html'))
+    with open(os.path.join(_STATIC, 'index.html'), encoding='utf-8') as f:
+        html = f.read()
+    html = re.sub(r'(/static/(?:app\.js|style\.css))\?v=[^"\']*',
+                  lambda m: f'{m.group(1)}?v={_asset_version()}', html)
+    # ה-HTML עצמו לעולם לא נשמר במטמון, אחרת הדפדפן ממשיך לקרוא חותם גרסה ישן
+    # ולא מגלה שהקבצים התחלפו. הקבצים הממוספרים כן נשמרים, וזו כל הנקודה.
+    return HTMLResponse(html, headers={'Cache-Control': 'no-cache, must-revalidate'})
 
 
 app.mount('/static', StaticFiles(directory=_STATIC), name='static')
