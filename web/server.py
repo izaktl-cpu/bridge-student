@@ -161,7 +161,10 @@ def report(req: ReportReq):
     rec = reports.build_report(webapp, note=req.note or '', lesson_idx=idx, lesson_label=label)
     reports.save_report(rec)
     emailed, info = reports.send_email(rec)
-    return {'ok': True, 'saved': True, 'emailed': emailed, 'info': info}
+    if not emailed:
+        # הפירוט עלול להכיל את מפתח ה-API — ללוג בלבד, לא ללקוח
+        print(f'[report] email failed: {info}', flush=True)
+    return {'ok': True, 'saved': True, 'emailed': emailed}
 
 
 @app.post('/api/replay')

@@ -96,11 +96,11 @@ def report_text(r):
 
 def send_email(report):
     """שולח מייל אם מוגדר RESEND_API_KEY. מחזיר (sent: bool, info: str)."""
-    key = os.environ.get('RESEND_API_KEY')
+    key = os.environ.get('RESEND_API_KEY', '').strip()
     if not key:
         return False, 'no-key'
-    to_addr = os.environ.get('REPORT_EMAIL', 'izaktl@gmail.com')
-    from_addr = os.environ.get('RESEND_FROM', 'onboarding@resend.dev')
+    to_addr = os.environ.get('REPORT_EMAIL', 'izaktl@gmail.com').strip()
+    from_addr = os.environ.get('RESEND_FROM', 'onboarding@resend.dev').strip()
 
     body = report_text(report)
     payload = json.dumps({
@@ -113,7 +113,12 @@ def send_email(report):
     req = urllib.request.Request(
         'https://api.resend.com/emails',
         data=payload,
-        headers={'Authorization': f'Bearer {key}', 'Content-Type': 'application/json'},
+        headers={
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            # בלי User-Agent, Cloudflare שלפני Resend חוסם עם error 1010
+            'User-Agent': 'bridge-student/1.0',
+        },
         method='POST',
     )
     try:
