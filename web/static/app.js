@@ -277,7 +277,7 @@ function reportStuck() {
       <div class="modal-title">נתקעת? שלח דיווח למורה 🆘</div>
       <div class="modal-sub">היד והמכרז יישלחו אוטומטית. אפשר להוסיף מה לא היה ברור (לא חובה):</div>
       <textarea id="stuck-note" dir="auto" rows="3" placeholder="למשל: לא הבנתי למה לא להכריז 4NT"></textarea>
-      <div class="modal-sub modal-reply">תרצה שאשיב לך? השאר מייל, ואם אין אז ווצאפ.</div>
+      <div class="modal-sub modal-reply">תרצה שאשיב לך? השאר מייל.</div>
       <div class="modal-btns">
         <button id="stuck-send" class="ctl ctl-new">שלח</button>
         <button id="stuck-cancel" class="ctl ctl-replay">ביטול</button>
